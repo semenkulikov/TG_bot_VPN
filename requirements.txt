@@ -2,5 +2,3 @@ peewee
 pyTelegramBotAPI
 python-dotenv
 requests
-telebot-calendar
-urllib3
