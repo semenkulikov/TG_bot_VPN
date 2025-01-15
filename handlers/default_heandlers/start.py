@@ -30,6 +30,9 @@ def bot_start(message: Message):
                                                        f"Вы подписаны на канал, поэтому можете пользоваться ботом. "
                                                        f"Вам доступны следующие команды:\n"
                                                        f"{'\n'.join(commands)}")
+                cur_user = User.get_by_id(message.from_user.id)
+                cur_user.is_subscribed = True
+                cur_user.save()
             else:
                 bot.send_message(message.from_user.id, f"Здравствуйте, {message.from_user.full_name}! "
                                                    f"Для использования бота необходимо подписаться на канал, "
@@ -62,6 +65,11 @@ def is_subscribed_handler(call):
     if is_subscribed(CHANNEL_ID, call.from_user.id):
         commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]
         app_logger.info(f"Пользователь {call.from_user.full_name} подписался на канал!")
+
+        cur_user = User.get_by_id(call.from_user.id)
+        cur_user.is_subscribed = True
+        cur_user.save()
+
         bot.answer_callback_query(callback_query_id=call.id)
         bot.send_message(call.message.chat.id, "Спасибо, что выбрали наш сервис, приятного использования!\n"
                                                f"Вам доступны следующие команды:\n"

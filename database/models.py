@@ -15,6 +15,7 @@ class User(BaseModel):
     full_name = peewee.CharField()
     username = peewee.CharField()
     is_premium = peewee.BooleanField(null=True)
+    is_subscribed = peewee.BooleanField(default=False)
 
 
 class Group(BaseModel):
