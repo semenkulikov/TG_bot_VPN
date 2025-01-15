@@ -19,3 +19,5 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH_TO_PYTHON = os.path.normpath(os.path.join(BASE_DIR, ".venv/bin/python.exe"))
 ADMIN_ID = os.getenv('ADMIN_ID')
 ALLOWED_USERS = [int(ADMIN_ID),]
+
+CHANNEL_ID = os.getenv('CHANNEL_ID')
