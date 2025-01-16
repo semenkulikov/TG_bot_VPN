@@ -7,6 +7,17 @@ from keyboards.inline.subscribed import is_subscribed_markup
 from states.states import SubscribedState
 
 
+start_text = """*Вы не подписались на канал!*
+                
+☺️ Для доступа к полному функционалу бота вам необходимо подписаться на наш новостной канал [Guard Tunnel VPN](channel_id)
+                
+🎁 В подарок вы получите *бесплатный доступ* на использование нашего сервиса
+                
+*С Уважением, команда Guard Tunnel VPN*
+                
+_После подписки на наш канал нажмите ниже на кнопку: ✅ Я подписался_"""
+
+
 @bot.message_handler(commands=['start'])
 def bot_start(message: Message):
     if message.chat.type == "private":
@@ -26,18 +37,17 @@ def bot_start(message: Message):
         else:
             if is_subscribed(CHANNEL_ID, message.from_user.id):
                 # Если пользователь подписан на канал, тогда ему можно пользоваться ботом.
-                bot.send_message(message.from_user.id, f"Здравствуйте, {message.from_user.full_name}! "
-                                                       f"Вы подписаны на канал, поэтому можете пользоваться ботом. "
-                                                       f"Вам доступны следующие команды:\n"
+                bot.send_message(message.from_user.id, f"Приветствуем, {message.from_user.full_name}.\n"
+                                                       f"Рады приветствовать вас на нашем сервисе!\n"
+                                                       f"Что бы использовать наш VPN сервис, "
+                                                       f"следуйте инструкциям ниже 👇\n"
                                                        f"{'\n'.join(commands)}")
                 cur_user = User.get(User.user_id == message.from_user.id)
                 cur_user.is_subscribed = True
                 cur_user.save()
             else:
-                bot.send_message(message.from_user.id, f"Здравствуйте, {message.from_user.full_name}! "
-                                                   f"Для использования бота необходимо подписаться на канал, "
-                                                       f"перейдите по ссылке:\n"
-                                                   f"{CHANNEL_ID}", reply_markup=is_subscribed_markup())
+                bot.send_message(message.from_user.id, start_text.format(channel_id=CHANNEL_ID),
+                                 reply_markup=is_subscribed_markup(), parse_mode='Markdown')
                 bot.set_state(message.from_user.id, SubscribedState.subscribe)
 
     else:
@@ -77,5 +87,5 @@ def is_subscribed_handler(call):
         bot.set_state(call.message.chat.id, None)
     else:
         bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, "Для того, что бы пользоваться ботом, вам необходимо подписаться на канал:\n"
-                                               f"{CHANNEL_ID}", reply_markup=is_subscribed_markup())
+        bot.send_message(call.message.chat.id, start_text.format(channel_id=CHANNEL_ID),
+                         reply_markup=is_subscribed_markup(), parse_mode='Markdown')
