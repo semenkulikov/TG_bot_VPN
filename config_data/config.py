@@ -11,6 +11,7 @@ DEFAULT_COMMANDS = (
     ('start', "Запустить бота"),
     ('help', "Вывести справку"),
     ('location', "Выбрать сервера для подключения"),
+    ('instruction', "Запросить инструкцию для подключения VPN"),
 )
 ADMIN_COMMANDS = (
     ("admin_panel", "Админка"),
