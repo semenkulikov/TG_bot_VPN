@@ -9,7 +9,7 @@ from states.states import SubscribedState
 
 start_text = """*Вы не подписались на канал!*
                 
-☺️ Для доступа к полному функционалу бота вам необходимо подписаться на наш новостной канал [Guard Tunnel VPN](channel_id)
+☺️ Для доступа к полному функционалу бота вам необходимо подписаться на наш новостной канал [Guard Tunnel VPN](https://t.me/{channel_id})
                 
 🎁 В подарок вы получите *бесплатный доступ* на использование нашего сервиса
                 
@@ -46,8 +46,9 @@ def bot_start(message: Message):
                 cur_user.is_subscribed = True
                 cur_user.save()
             else:
-                bot.send_message(message.from_user.id, start_text.format(channel_id=CHANNEL_ID),
-                                 reply_markup=is_subscribed_markup(), parse_mode='Markdown')
+                bot.send_message(message.from_user.id, start_text.format(channel_id=CHANNEL_ID[1:]),
+                                 reply_markup=is_subscribed_markup(), parse_mode='Markdown',
+                                 disable_web_page_preview=True)
                 bot.set_state(message.from_user.id, SubscribedState.subscribe)
 
     else:
@@ -87,5 +88,6 @@ def is_subscribed_handler(call):
         bot.set_state(call.message.chat.id, None)
     else:
         bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, start_text.format(channel_id=CHANNEL_ID),
-                         reply_markup=is_subscribed_markup(), parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, start_text.format(channel_id=CHANNEL_ID[1:]),
+                         reply_markup=is_subscribed_markup(), parse_mode='Markdown',
+                         disable_web_page_preview=True)
