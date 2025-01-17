@@ -21,7 +21,7 @@ def users_markup():
     for user in users_obj:
         if int(user.user_id) not in ALLOWED_USERS:
             actions.add(InlineKeyboardButton(text=f"{user.full_name}", callback_data=user.id))
-    actions.add(InlineKeyboardButton(text=f"Выйти", callback_data="Exit"))
+    actions.add(InlineKeyboardButton(text=f"Назад", callback_data="Exit"))
     return actions
 
 
