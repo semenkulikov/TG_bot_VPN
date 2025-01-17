@@ -6,3 +6,7 @@ class AdminPanel(StatesGroup):
 
 class SubscribedState(StatesGroup):
     subscribe = State()
+
+class GetVPNKey(StatesGroup):
+    get_server = State()
+    get_key = State()

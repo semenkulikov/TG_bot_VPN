@@ -25,8 +25,8 @@ class VPNKey(BaseModel):
     """ Модель для VPN ключа. Привязан к серверу. Имеет qr код (картинка) для подключения """
     key_id = peewee.CharField(unique=True)
     server = peewee.ForeignKeyField(Server, related_name="keys")
-    key = peewee.CharField()
-    qr_code = peewee.CharField()
+    key = peewee.CharField(unique=True)
+    qr_code = peewee.CharField(unique=True)
     is_valid = peewee.BooleanField(default=True)
     created_at = peewee.DateTimeField(default=datetime.datetime.now())
     updated_at = peewee.DateTimeField(default=datetime.datetime.now())
