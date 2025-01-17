@@ -10,7 +10,7 @@ def users_markup():
     actions = InlineKeyboardMarkup(row_width=2)
 
     for user in users_obj:
-        if user.user_id not in ALLOWED_USERS:
+        if int(user.user_id) not in ALLOWED_USERS:
             actions.add(InlineKeyboardButton(text=f"{user.full_name}", callback_data=user.id))
     actions.add(InlineKeyboardButton(text=f"Выйти", callback_data="Exit"))
     return actions

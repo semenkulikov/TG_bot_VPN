@@ -10,3 +10,4 @@ def bot_help(message: Message):
     if message.from_user.id in ALLOWED_USERS:
         commands.extend([f"/{command} - {description}" for command, description in ADMIN_COMMANDS])
     bot.reply_to(message, 'Доступные команды:\n{}'.format("\n".join(commands)))
+    bot.send_message(message.chat.id, "Обратиться в поддержку: @guardtunnel_support")

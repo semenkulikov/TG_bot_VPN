@@ -1,3 +1,5 @@
+import datetime
+
 import peewee
 
 db = peewee.SqliteDatabase("database/database.db")
@@ -9,6 +11,27 @@ class BaseModel(peewee.Model):
         database = db
 
 
+class Server(BaseModel):
+    """ Модель сервера для подключения VPN """
+    server_id = peewee.CharField(unique=True)
+    username = peewee.CharField()
+    password = peewee.CharField()
+    location = peewee.CharField()
+    port = peewee.IntegerField()
+    ip_address = peewee.CharField(unique=True)
+
+
+class VPNKey(BaseModel):
+    """ Модель для VPN ключа. Привязан к серверу. Имеет qr код (картинка) для подключения """
+    key_id = peewee.CharField(unique=True)
+    server = peewee.ForeignKeyField(Server, related_name="keys")
+    key = peewee.CharField()
+    qr_code = peewee.CharField()
+    is_valid = peewee.BooleanField(default=True)
+    created_at = peewee.DateTimeField(default=datetime.datetime.now())
+    updated_at = peewee.DateTimeField(default=datetime.datetime.now())
+
+
 class User(BaseModel):
     """ Модель пользователя """
     user_id = peewee.CharField(unique=True)
@@ -16,6 +39,7 @@ class User(BaseModel):
     username = peewee.CharField()
     is_premium = peewee.BooleanField(null=True)
     is_subscribed = peewee.BooleanField(default=False)
+    vpn_key = peewee.ForeignKeyField(VPNKey, related_name="users", null=True)
 
 
 class Group(BaseModel):

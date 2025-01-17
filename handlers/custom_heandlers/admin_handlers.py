@@ -95,6 +95,7 @@ def get_user(call):
         bot.answer_callback_query(callback_query_id=call.id)
         bot.send_message(call.message.chat.id, "Вы успешно вышли из админ панели.")
         bot.set_state(call.message.chat.id, None)
+        app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
     else:
         bot.answer_callback_query(callback_query_id=call.id)
         user_obj: User = User.get_by_id(call.data)

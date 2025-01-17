@@ -11,6 +11,6 @@ if __name__ == '__main__':
     bot.add_custom_filter(StateFilter(bot))
     set_default_commands(bot)
     app_logger.info("Загрузка базовых команд...")
-    app_logger.info("Бот запущен.")
+    app_logger.info(f"Бот @{bot.get_me().username} запущен.")
     bot.send_message(ADMIN_ID, "Бот запущен.")
     bot.infinity_polling()
