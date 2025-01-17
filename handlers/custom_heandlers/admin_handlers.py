@@ -1,8 +1,8 @@
 from telebot.types import Message
 
 from config_data.config import ALLOWED_USERS
-from database.models import User
-from keyboards.inline.accounts import users_markup
+from database.models import User, Server
+from keyboards.inline.admin_buttons import users_markup, admin_markup, get_vpn_markup
 from loader import bot, app_logger
 from states.states import AdminPanel
 
@@ -82,11 +82,30 @@ from states.states import AdminPanel
 def admin_panel(message: Message):
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} зашел в админ панель.")
-        bot.send_message(message.from_user.id, "Админ панель")
-        bot.send_message(message.from_user.id, "Все пользователи базы данных:", reply_markup=users_markup())
-        bot.set_state(message.from_user.id, AdminPanel.get_users)
+        bot.send_message(message.from_user.id, "Вы вошли в админ панель. Выберите кнопку ниже",
+                         reply_markup=admin_markup())
+        bot.set_state(message.from_user.id, AdminPanel.get_option)
     else:
         bot.send_message(message.from_user.id, "У вас недостаточно прав")
+
+
+@bot.callback_query_handler(func=None, state=AdminPanel.get_option)
+def admin_panel_handler(call):
+    """ Callback handler для выбора раздела админ панели """
+    bot.answer_callback_query(callback_query_id=call.id)
+
+    if call.data == "Exit":
+        bot.send_message(call.message.chat.id, "Вы успешно вышли из админ панели.")
+        bot.set_state(call.message.chat.id, None)
+        app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
+    elif call.data == "users":
+        app_logger.info(f"Администратор {call.from_user.full_name} зашел в юзер панель.")
+        bot.send_message(call.message.chat.id, "Все пользователи базы данных:", reply_markup=users_markup())
+        bot.set_state(call.message.chat.id, AdminPanel.get_users)
+    elif call.data == "servers":
+        app_logger.info(f"Администратор {call.from_user.full_name} зашел в панель управления серверами.")
+        bot.send_message(call.message.chat.id, "Панель управления серверами:", reply_markup=)
+        bot.set_state(call.message.chat.id, AdminPanel.get_servers)
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_users)
@@ -101,3 +120,52 @@ def get_user(call):
         user_obj: User = User.get_by_id(call.data)
         bot.send_message(call.message.chat.id, f"Имя: {user_obj.full_name}\n"
                                                f"Телеграм: @{user_obj.username}\n")
+
+
+@bot.callback_query_handler(func=None, state=AdminPanel.get_servers)
+def server_panel_handler(call):
+    """ Хендлер для управления серверами """
+    bot.answer_callback_query(callback_query_id=call.id)
+
+    if call.data == "Add":
+        bot.send_message(call.message.chat.id, "Введите данные сервера в таком формате:\n"
+                                               "Location (США например)\n"
+                                               "Username (root к примеру)\n"
+                                               "Password (пароль от root)\n"
+                                               "IP address\n"
+                                               "Port работы X-UI")
+        bot.set_state(call.message.chat.id, AdminPanel.add_server)
+        return
+
+    server_id = call.data
+    server_obj: Server = Server.get(Server.server_id == server_id)
+
+
+    # Выдача всей информации по серверу
+    bot.send_message(call.message.chat.id, f"Имя сервера: {server_obj.location}\n"
+                                               f"Username: {server_obj.username}\n"
+                                               f"Password: {server_obj.password}\n"
+                                               f"IP адрес: {server_obj.ip_address}\n"
+                                               f"Порт работы X-UI: {server_obj.port}",
+                     reply_markup=get_vpn_markup(server_id))
+    bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
+
+
+@bot.message_handler(state=AdminPanel.add_server)
+def add_server(message: Message):
+    """ Добавление нового сервера """
+    pass
+
+
+@bot.callback_query_handler(func=None, state=AdminPanel.get_vpn_keys)
+def vpn_panel_handler(call):
+    """ Хендлер для управления всеми привязанными к серверу VPN ключами """
+    bot.answer_callback_query(callback_query_id=call.id)
+
+    server_id = call.data
+    server_obj: Server = Server.get(Server.server_id == server_id)
+
+    if call.data == "Delete":
+        server_obj.delete_instance()
+        bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален.")
+        return
