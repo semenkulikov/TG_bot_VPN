@@ -1,8 +1,10 @@
 import datetime
+import os.path
 
+from config_data.config import BASE_DIR
 import peewee
 
-db = peewee.SqliteDatabase("database/database.db")
+db = peewee.SqliteDatabase(os.path.join(BASE_DIR, "database/database.db"))
 
 
 class BaseModel(peewee.Model):
