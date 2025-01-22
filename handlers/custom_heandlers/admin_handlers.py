@@ -10,6 +10,7 @@ from states.states import AdminPanel
 
 @bot.message_handler(commands=["admin_panel"])
 def admin_panel(message: Message):
+    """ Хендлер для админ панели """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} зашел в админ панель.")
         bot.send_message(message.from_user.id, "Вы вошли в админ панель. Выберите кнопку ниже",
@@ -40,6 +41,7 @@ def admin_panel_handler(call):
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_users)
 def get_user(call):
+    """ Хендлер для работы с юзерами из админ панели """
     if call.data == "Exit":
         bot.answer_callback_query(callback_query_id=call.id)
         bot.send_message(call.message.chat.id, "Выберите опцию", reply_markup=admin_markup())
@@ -147,3 +149,28 @@ def vpn_panel_handler(call):
         vpn_obj.delete_instance()
 
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
+
+
+@bot.message_handler(commands=["message_sending"])
+def message_sending_handler(message: Message):
+    """ Хендлер рассылки сообщений юзерам """
+    if message.from_user.id in ALLOWED_USERS:
+        app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /message_sending.")
+        bot.send_message(message.from_user.id, "Введите сообщение для рассылки")
+        bot.set_state(message.from_user.id, AdminPanel.send_message)
+    else:
+        bot.send_message(message.from_user.id, "У вас недостаточно прав")
+
+
+@bot.message_handler(state=AdminPanel.send_message)
+def send_message_to_users_handler(message: Message):
+    """ Отправка сообщений пользователям """
+    app_logger.info(f"Администратор {message.from_user.full_name} начал рассылку сообщений: {message.text}")
+
+    bot.send_message(message.chat.id, "Начинаю рассылку...")
+    bot.send_chat_action(message.chat.id, "typing")
+    for user_obj in User.select():
+        if int(user_obj.user_id) not in ALLOWED_USERS:
+            bot.send_message(user_obj.user_id, message.text)
+    bot.send_message(message.chat.id, "Рассылка сообщений завершена!")
+    bot.set_state(message.from_user.id, None)

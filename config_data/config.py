@@ -15,6 +15,7 @@ DEFAULT_COMMANDS = (
 )
 ADMIN_COMMANDS = (
     ("admin_panel", "Админка"),
+    ("message_sending", "Рассылка сообщений")
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
