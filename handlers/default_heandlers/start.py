@@ -21,12 +21,14 @@ _После подписки на наш канал нажмите ниже на
 @bot.message_handler(commands=['start'])
 def bot_start(message: Message):
     if message.chat.type == "private":
+        is_sub = True if message.from_user.id in ALLOWED_USERS else False
         if User.get_or_none(user_id=message.from_user.id) is None:
             app_logger.info(f"Внимание! Новый юзер: {message.from_user.full_name} - {message.from_user.username}")
             User.create(user_id=message.from_user.id,
                         full_name=message.from_user.full_name,
                         username=message.from_user.username,
-                        is_premium=message.from_user.is_premium)
+                        is_premium=message.from_user.is_premium,
+                        is_subscribed=is_sub)
         commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]
         if message.from_user.id in ALLOWED_USERS:
             commands.extend([f"/{command} - {description}" for command, description in ADMIN_COMMANDS])
