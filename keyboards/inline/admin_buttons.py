@@ -40,5 +40,5 @@ def get_vpn_markup(server_id):
     actions = InlineKeyboardMarkup(row_width=1)
     for vpn_key_obj in cur_server.keys:
         actions.add(InlineKeyboardButton(text=f"{vpn_key_obj.name}", callback_data=str(vpn_key_obj.id)))
-    actions.add(InlineKeyboardButton(text=f"Удалить сервер", callback_data="Delete "))
+    actions.add(InlineKeyboardButton(text=f"Удалить сервер", callback_data="Delete"))
     return actions

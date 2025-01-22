@@ -160,8 +160,15 @@ def server_panel_handler(call):
 @bot.message_handler(state=AdminPanel.add_server)
 def add_server(message: Message):
     """ Добавление нового сервера """
-    bot.send_message(message.from_user.id, "Эта функция еще в разработке, подождите")
-    bot.set_state(message.from_user.id, AdminPanel.get_servers)
+
+    server_data = message.text.split("\n")
+    Server.create(location=server_data[0], username=server_data[1], password=server_data[2],
+                 ip_address=server_data[3], port=server_data[4])
+
+    bot.send_message(message.from_user.id, "Сервер добавлен.")
+    bot.set_state(message.from_user.id, None)
+
+    app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server_data[0]}")
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_vpn_keys)
