@@ -1,5 +1,5 @@
 from telebot.types import Message
-
+import datetime
 from config_data.config import ALLOWED_USERS
 from database.models import User, Server, VPNKey
 from keyboards.inline.admin_buttons import (users_markup, admin_markup, get_vpn_markup,
@@ -73,7 +73,7 @@ def server_panel_handler(call):
         return
 
     server_id = call.data
-    server_obj: Server = Server.get(Server.server_id == server_id)
+    server_obj: Server = Server.get_by_id(server_id)
 
 
     # Выдача всей информации по серверу
@@ -90,15 +90,19 @@ def server_panel_handler(call):
 @bot.message_handler(state=AdminPanel.add_server)
 def add_server(message: Message):
     """ Добавление нового сервера """
+    try:
+        server_data = message.text.split("\n")
+        Server.create(location=server_data[0], username=server_data[1], password=server_data[2],
+                     ip_address=server_data[3], port=server_data[4])
 
-    server_data = message.text.split("\n")
-    Server.create(location=server_data[0], username=server_data[1], password=server_data[2],
-                 ip_address=server_data[3], port=server_data[4])
+        bot.send_message(message.from_user.id, "Сервер добавлен.")
+        bot.set_state(message.from_user.id, None)
 
-    bot.send_message(message.from_user.id, "Сервер добавлен.")
-    bot.set_state(message.from_user.id, None)
-
-    app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server_data[0]}")
+        app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server_data[0]}")
+    except Exception:
+        bot.send_message(message.from_user.id, "Некорректные данные!!")
+        bot.set_state(message.from_user.id, AdminPanel.add_server)
+        app_logger.error(f"Ошибка при добавлении сервера {message.text}")
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_vpn_keys)
@@ -108,7 +112,7 @@ def vpn_panel_handler(call):
 
     if "Delete" in call.data:
         server_id = call.data.split()[1]
-        server_obj: Server = Server.get(Server.server_id == server_id)
+        server_obj: Server = Server.get_by_id(server_id)
         server_obj.delete_instance()
         bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален.")
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
@@ -122,7 +126,7 @@ def vpn_panel_handler(call):
                                            f"Занят: {"Да" if vpn_obj.is_valid else "Нет"}\n"
                                            f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
                                            f"Создан: {vpn_obj.created_at}",
-                     reply_markup=delete_vpn_markup(vpn_obj))
+                     reply_markup=delete_vpn_markup(vpn_obj.id))
     bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
 
 
@@ -135,12 +139,11 @@ def vpn_panel_handler(call):
                          reply_markup=admin_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         return
+    if "Del - " in call.data:
+        vpn_key_id = int(call.data.split(" - ")[1])
+        vpn_obj: VPNKey = VPNKey.get(vpn_key_id)
+        bot.send_message(call.message.chat.id, f"VPN ключ {vpn_obj.name} удален.")
+        app_logger.info(f"Администратор удалил VPN ключ {vpn_obj.name}")
+        vpn_obj.delete_instance()
 
-    vpn_key_id = int(call.data)
-    vpn_obj: VPNKey = VPNKey.get(VPNKey.key_id == vpn_key_id)
-    bot.send_message(call.message.chat.id, f"VPN ключ {vpn_obj.name} удален.")
-    app_logger.info(f"Администратор удалил VPN ключ {vpn_obj.name}")
-    vpn_obj.delete_instance()
-
-    bot.set_state(call.message.chat.id, AdminPanel.get_servers)
-
+        bot.set_state(call.message.chat.id, AdminPanel.get_servers)

@@ -36,16 +36,16 @@ def get_servers_markup():
 
 def get_vpn_markup(server_id):
     """ Inline buttons для выдачи vpn ключей сервера """
-    cur_server: Server = Server.get(Server.server_id == server_id)
+    cur_server: Server = Server.get_by_id(server_id)
     actions = InlineKeyboardMarkup(row_width=1)
     for vpn_key_obj in cur_server.keys:
         actions.add(InlineKeyboardButton(text=f"{vpn_key_obj.name}", callback_data=str(vpn_key_obj.id)))
-    actions.add(InlineKeyboardButton(text=f"Удалить сервер", callback_data="Delete"))
+    actions.add(InlineKeyboardButton(text=f"Удалить сервер", callback_data=f"Delete {cur_server.id}"))
     return actions
 
 def delete_vpn_markup(vpn_obj_id: int):
     """ Inline buttons для удаления vpn ключа """
     actions = InlineKeyboardMarkup(row_width=2)
-    actions.add(InlineKeyboardButton(text=f"Удалить", callback_data=vpn_obj_id),
+    actions.add(InlineKeyboardButton(text=f"Удалить", callback_data=f"Del - {vpn_obj_id}"),
                 InlineKeyboardButton(text=f"Выйти", callback_data="Cancel"))
     return actions

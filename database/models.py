@@ -15,7 +15,6 @@ class BaseModel(peewee.Model):
 
 class Server(BaseModel):
     """ Модель сервера для подключения VPN """
-    server_id = peewee.CharField(unique=True)
     username = peewee.CharField()
     password = peewee.CharField()
     location = peewee.CharField()
@@ -25,7 +24,6 @@ class Server(BaseModel):
 
 class VPNKey(BaseModel):
     """ Модель для VPN ключа. Привязан к серверу. Имеет qr код (картинка) для подключения """
-    key_id = peewee.CharField(unique=True)
     server = peewee.ForeignKeyField(Server, related_name="keys")
     name = peewee.CharField()
     key = peewee.CharField(unique=True)

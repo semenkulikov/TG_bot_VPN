@@ -26,22 +26,29 @@ def get_server_handler(call):
     server_id = call.data
 
     cur_user: User = User.get(User.user_id == call.from_user.id)
-    cur_server: Server = Server.get(Server.server_id == server_id)
+    cur_server: Server = Server.get_by_id(server_id)
     app_logger.info(f"Пользователь {cur_user.full_name} выбрал сервер {cur_server.location}")
 
     # Получение всех vpn ключей данного сервера и выбор одного
     for vpn_key_obj in cur_server.keys:
         if vpn_key_obj.is_valid:
+            if cur_user.vpn_key is not None:
+                users_vpn = VPNKey.get(cur_user.vpn_key)
+                users_vpn.is_valid = True
+                users_vpn.save()
+                app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
             cur_user.vpn_key = vpn_key_obj
             cur_user.save()
             vpn_key_obj.is_valid = False
             vpn_key_obj.save()
-
-            with open(vpn_key_obj.qr_code, "rb") as qr_code:
-                bot.send_photo(call.message.chat.id, qr_code,
-                                 f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                                 f"URL для подключения:\n\n{vpn_key_obj.key}")
-                bot.set_state(call.message.chat.id, None)
+            app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал ключ {vpn_key_obj.name}")
+            # with open(vpn_key_obj.qr_code, "rb") as qr_code:
+            #     bot.send_photo(call.message.chat.id, qr_code,
+            #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+            #                      f"URL для подключения:\n\n{vpn_key_obj.key}")
+            bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+                                                        f"URL для подключения:\n\n{vpn_key_obj.key}")
+            bot.set_state(call.message.chat.id, None)
             return
 
     app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей!")
