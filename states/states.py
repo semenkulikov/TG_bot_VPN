@@ -8,6 +8,7 @@ class AdminPanel(StatesGroup):
     add_server = State()
     get_vpn_keys = State()
     delete_server = State()
+    delete_vpn = State()
 
 
 class SubscribedState(StatesGroup):
