@@ -4,6 +4,7 @@ from config_data.config import DEFAULT_COMMANDS, ADMIN_COMMANDS, ALLOWED_USERS, 
 from database.models import User, Group
 from utils.functions import is_subscribed
 from keyboards.inline.subscribed import is_subscribed_markup
+from keyboards.reply.handlers_reply import handlers_reply
 from states.states import SubscribedState
 
 
@@ -35,7 +36,8 @@ def bot_start(message: Message):
             bot.send_message(message.from_user.id, f"Здравствуйте, {message.from_user.full_name}! "
                                                    f"Вы в списке администраторов бота. "
                                                    f"Вам доступны следующие команды:\n"
-                                                   f"{'\n'.join(commands)}")
+                                                   f"{'\n'.join(commands)}",
+                             reply_markup=handlers_reply())
         else:
             if is_subscribed(CHANNEL_ID, message.from_user.id):
                 # Если пользователь подписан на канал, тогда ему можно пользоваться ботом.
@@ -43,7 +45,8 @@ def bot_start(message: Message):
                                                        f"Рады приветствовать вас на нашем сервисе!\n"
                                                        f"Что бы использовать наш VPN сервис, "
                                                        f"следуйте инструкциям ниже 👇\n"
-                                                       f"{'\n'.join(commands)}")
+                                                       f"{'\n'.join(commands)}",
+                                 reply_markup=handlers_reply())
                 cur_user = User.get(User.user_id == message.from_user.id)
                 cur_user.is_subscribed = True
                 cur_user.save()
