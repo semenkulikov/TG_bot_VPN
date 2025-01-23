@@ -3,6 +3,10 @@ import os
 from config_data.config import BASE_DIR
 
 
+script_text = """
+
+"""
+
 def generate_key(server_obj: Server) -> VPNKey:
     """
     Функция для генерации VPN ключа
@@ -17,3 +21,5 @@ def generate_key(server_obj: Server) -> VPNKey:
         is_valid=True
     )
     return result_key
+
+
