@@ -121,9 +121,9 @@ def vpn_panel_handler(call):
         return
 
     # Выдача всей информации по VPN ключу
-    vpn_obj: VPNKey = VPNKey.get(call.data)
+    vpn_obj: VPNKey = VPNKey.get_by_id(call.data)
     bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
-                                            f"Сервер: {Server.get(vpn_obj.server).location}\n"
+                                            f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
                                            f"VPN KEY: {vpn_obj.key}\n"
                                            f"Занят: {"Да" if vpn_obj.is_valid else "Нет"}\n"
                                            f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
@@ -143,7 +143,7 @@ def vpn_panel_handler(call):
         return
     if "Del - " in call.data:
         vpn_key_id = int(call.data.split(" - ")[1])
-        vpn_obj: VPNKey = VPNKey.get(vpn_key_id)
+        vpn_obj: VPNKey = VPNKey.get_by_id(vpn_key_id)
         bot.send_message(call.message.chat.id, f"VPN ключ {vpn_obj.name} удален.")
         app_logger.info(f"Администратор удалил VPN ключ {vpn_obj.name}")
         vpn_obj.delete_instance()

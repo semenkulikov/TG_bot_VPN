@@ -3,6 +3,7 @@ from database.models import User, Server, VPNKey
 from loader import bot, app_logger
 from keyboards.inline.servers import get_locations_markup
 from states.states import GetVPNKey
+from utils.generate_vpn_keys import generate_key
 
 
 @bot.message_handler(commands=["location"])
@@ -29,14 +30,15 @@ def get_server_handler(call):
     cur_server: Server = Server.get_by_id(server_id)
     app_logger.info(f"Пользователь {cur_user.full_name} выбрал сервер {cur_server.location}")
 
+    # Если у пользователя уже есть активный vpn ключ, отменяем его
+    if cur_user.vpn_key is not None:
+        users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
+        users_vpn.is_valid = True
+        users_vpn.save()
+        app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
     # Получение всех vpn ключей данного сервера и выбор одного
     for vpn_key_obj in cur_server.keys:
         if vpn_key_obj.is_valid:
-            if cur_user.vpn_key is not None:
-                users_vpn = VPNKey.get(cur_user.vpn_key)
-                users_vpn.is_valid = True
-                users_vpn.save()
-                app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
             cur_user.vpn_key = vpn_key_obj
             cur_user.save()
             vpn_key_obj.is_valid = False
@@ -51,5 +53,21 @@ def get_server_handler(call):
             bot.set_state(call.message.chat.id, None)
             return
 
-    app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей!")
-    bot.send_message(call.message.chat.id, "К сожалению, на данный момент для этой локации нет свободных VPN ключей.")
+    # Если нет свободных ключей, генерируем новый
+    app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей! "
+                       f"Генерирую новый...")
+    new_key: VPNKey = generate_key(cur_server)
+    app_logger.info(f"Сгенерирован новый ключ {new_key.name}!")
+    cur_user.vpn_key = new_key
+    cur_user.save()
+
+    new_key.is_valid = False
+    new_key.save()
+    app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал новый ключ {new_key.name}")
+    # with open(new_key.qr_code, "rb") as qr_code:
+    #     bot.send_photo(call.message.chat.id, qr_code,
+    #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+    #                      f"URL для подключения:\n\n{new_key.key}")
+    bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+                                                        f"URL для подключения:\n\n{new_key.key}")
+    bot.set_state(call.message.chat.id, None)
