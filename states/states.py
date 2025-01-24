@@ -11,6 +11,10 @@ class AdminPanel(StatesGroup):
     delete_vpn = State()
     send_message = State()
 
+    add_vpn_key_name = State()
+    add_vpn_key_key = State()
+    save_vpn_key = State()
+
 
 class SubscribedState(StatesGroup):
     subscribe = State()

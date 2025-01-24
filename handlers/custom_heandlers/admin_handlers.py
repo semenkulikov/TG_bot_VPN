@@ -125,7 +125,7 @@ def vpn_panel_handler(call):
     bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
                                             f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
                                            f"VPN KEY: {vpn_obj.key}\n"
-                                           f"Занят: {"Да" if vpn_obj.is_valid else "Нет"}\n"
+                                           f"Свободен: {"Да" if vpn_obj.is_valid else "Нет"}\n"
                                            f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
                                            f"Создан: {vpn_obj.created_at}",
                      reply_markup=delete_vpn_markup(vpn_obj.id))
@@ -174,3 +174,67 @@ def send_message_to_users_handler(message: Message):
             bot.send_message(user_obj.user_id, message.text)
     bot.send_message(message.chat.id, "Рассылка сообщений завершена!")
     bot.set_state(message.from_user.id, None)
+
+
+@bot.message_handler(commands=["add_vpn_key"])
+def add_vpn_key_handler(message: Message):
+    """ Хендлер для ручного добавления VPN ключа """
+    if message.from_user.id in ALLOWED_USERS:
+        app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /add_vpn_key.")
+        bot.send_message(message.from_user.id, "Введите название VPN ключа")
+        bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_name)
+    else:
+        bot.send_message(message.from_user.id, "У вас недостаточно прав!")
+
+
+@bot.message_handler(state=AdminPanel.add_vpn_key_name)
+def add_vpn_key_name_handler(message: Message):
+    """ Обработка ввода названия VPN ключа """
+    app_logger.info(f"Администратор {message.from_user.full_name} ввел название VPN ключа: {message.text}")
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data["vpn_key_name"] = message.text
+    bot.send_message(message.from_user.id, "Введите VPN KEY")
+    bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_key)
+
+
+@bot.message_handler(state=AdminPanel.add_vpn_key_key)
+def add_vpn_key_key_handler(message: Message):
+    """ Обработка ввода VPN ключа """
+    app_logger.info(f"Администратор {message.from_user.full_name} ввел VPN ключ")
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        print(data)
+        print(message.from_user.id, message.chat.id)
+        data["vpn_key_key"] = message.text
+    bot.send_message(message.from_user.id, "Выберите сервер, к которому принадлежит ключ",
+                     reply_markup=get_servers_markup())
+    bot.set_state(message.from_user.id, AdminPanel.save_vpn_key)
+
+
+@bot.callback_query_handler(func=None, state=AdminPanel.save_vpn_key)
+def save_vpn_handler(call):
+    """ Хендлер для сохранения в БД VPN ключа """
+    bot.answer_callback_query(callback_query_id=call.id)
+
+    if call.data == "Add":
+        bot.send_message(call.message.chat.id, "Введите данные сервера в таком формате:\n"
+                                               "Location (США например)\n"
+                                               "Username (root к примеру)\n"
+                                               "Password (пароль от root)\n"
+                                               "IP address\n"
+                                               "Порт работы ssh")
+        bot.set_state(call.message.chat.id, AdminPanel.add_server)
+        return
+
+    server_id = call.data
+    server_obj: Server = Server.get_by_id(server_id)
+    with bot.retrieve_data(call.from_user.id, call.from_user.id) as data:
+        vpn_key = VPNKey.create(
+            name=data["vpn_key_name"],
+            key=data["vpn_key_key"],
+            qr_code=data["vpn_key_key"],  # Заглушка, потом будут нормальные пути
+            server=server_obj,
+        )
+        app_logger.info(f"Администратор {call.message.from_user.full_name} добавил VPN ключ {vpn_key.name} "
+                        f"к серверу {server_obj.location}")
+        bot.send_message(call.message.chat.id, f"VPN ключ {vpn_key.name} добавлен к серверу {server_obj.location}.")
+        bot.set_state(call.message.chat.id, None)
