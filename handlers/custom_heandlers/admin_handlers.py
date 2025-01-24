@@ -136,18 +136,26 @@ def vpn_panel_handler(call):
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
-    # Выдача всей информации по VPN ключу
-    vpn_obj: VPNKey = VPNKey.get_by_id(call.data)
-    app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-    bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
-                                            f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
-                                           f"VPN KEY: {vpn_obj.key}\n"
-                                           f"Свободен: {"Да" if vpn_obj.is_valid else "Нет"}\n"
-                                           f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
-                                           f"Создан: {vpn_obj.created_at}",
-                     reply_markup=delete_vpn_markup(vpn_obj.id))
-    bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
-
+    if "VPN - " in call.data:
+        # Выдача всей информации по VPN ключу
+        vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
+        app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
+        bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
+                                                f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
+                                               f"VPN KEY: {vpn_obj.key}\n"
+                                               f"Свободен: {"Да" if vpn_obj.is_valid else "Нет"}\n"
+                                               f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
+                                               f"Создан: {vpn_obj.created_at}",
+                         reply_markup=delete_vpn_markup(vpn_obj.id))
+        bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
+    elif "Cancel" in call.data:
+        # Возврат в меню серверов
+        bot.send_message(call.message.chat.id, "Вы вернулись в меню серверов.",
+                         reply_markup=get_servers_markup())
+        app_logger.info(f"Администратор {call.from_user.full_name} вернулся в меню серверов")
+        bot.set_state(call.message.chat.id, AdminPanel.get_servers)
+    else:
+        bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
 
 @bot.callback_query_handler(func=None, state=AdminPanel.delete_vpn)
 def vpn_panel_handler(call):
@@ -167,6 +175,10 @@ def vpn_panel_handler(call):
         vpn_obj.delete_instance()
 
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
+    else:
+        # Скорее всего, пользователь выбрал другой VPN ключ
+        bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
+        vpn_panel_handler(call)
 
 
 @bot.message_handler(commands=["message_sending"])
@@ -230,6 +242,12 @@ def add_vpn_key_name_handler(message: Message):
 @bot.message_handler(state=AdminPanel.add_vpn_key_key)
 def add_vpn_key_key_handler(message: Message):
     """ Обработка ввода VPN ключа """
+
+    if message.text in get_all_commands_bot():
+        bot.send_message(message.from_user.id, "Это одна из команд бота")
+        bot.set_state(message.from_user.id, None)
+        return
+
     app_logger.info(f"Администратор {message.from_user.full_name} ввел VPN ключ")
     vless_str = convert_amnezia_xray_json_to_vless_str(message.text)
     if vless_str is None:
