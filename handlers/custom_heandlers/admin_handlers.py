@@ -6,6 +6,7 @@ from keyboards.inline.admin_buttons import (users_markup, admin_markup, get_vpn_
                                             get_servers_markup, delete_vpn_markup)
 from loader import bot, app_logger
 from states.states import AdminPanel
+from utils.functions import valid_ip, convert_amnezia_xray_json_to_vless_str
 
 
 @bot.message_handler(commands=["admin_panel"])
@@ -96,7 +97,12 @@ def server_panel_handler(call):
 def add_server(message: Message):
     """ Добавление нового сервера """
     try:
-        server_data = message.text.split("\n")
+        server_data = [item.strip() for item in message.text.split("\n")]
+        if len(server_data)!= 5:
+            raise ValueError("Неверное количество полей!")
+        elif valid_ip(server_data[3]) is False:
+            raise ValueError("Неверный формат IP адреса!")
+
         Server.create(location=server_data[0], username=server_data[1], password=server_data[2],
                      ip_address=server_data[3], port=server_data[4])
 
@@ -104,10 +110,10 @@ def add_server(message: Message):
         bot.set_state(message.from_user.id, None)
 
         app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server_data[0]}")
-    except Exception:
-        bot.send_message(message.from_user.id, "Некорректные данные!!")
+    except Exception as ex:
+        bot.send_message(message.from_user.id, f"Некорректные данные!\n{ex}")
         bot.set_state(message.from_user.id, AdminPanel.add_server)
-        app_logger.error(f"Ошибка при добавлении сервера {message.text}")
+        app_logger.error(f"Ошибка при добавлении сервера {ex}")
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_vpn_keys)
@@ -213,7 +219,7 @@ def add_vpn_key_name_handler(message: Message):
     app_logger.info(f"Администратор {message.from_user.full_name} ввел название VPN ключа: {message.text}")
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_name"] = message.text
-    bot.send_message(message.from_user.id, "Введите VPN KEY")
+    bot.send_message(message.from_user.id, "Введите VPN KEY в формате json, не ссылка")
     bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_key)
 
 
@@ -221,10 +227,14 @@ def add_vpn_key_name_handler(message: Message):
 def add_vpn_key_key_handler(message: Message):
     """ Обработка ввода VPN ключа """
     app_logger.info(f"Администратор {message.from_user.full_name} ввел VPN ключ")
+    vless_str = convert_amnezia_xray_json_to_vless_str(message.text)
+    if vless_str is None:
+        bot.send_message(message.from_user.id, "Не удалось преобразовать JSON в VLESS строку. "
+                                               "Проверьте правильность ввода.")
+        app_logger.warning("Не удалось преобразовать json конфиг в vless строку!")
+        return
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        print(data)
-        print(message.from_user.id, message.chat.id)
-        data["vpn_key_key"] = message.text
+        data["vpn_key_key"] = vless_str
     bot.send_message(message.from_user.id, "Выберите сервер, к которому принадлежит ключ",
                      reply_markup=get_servers_markup())
     bot.set_state(message.from_user.id, AdminPanel.save_vpn_key)

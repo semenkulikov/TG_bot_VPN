@@ -1,5 +1,5 @@
-from telebot.apihelper import ApiTelegramException
-from loader import bot
+from loader import bot, app_logger
+import json
 
 
 
@@ -14,3 +14,41 @@ def is_subscribed(chat_id, user_id):
     if result.status in ("creator", "administrator", "member", "restricted"):
         return True
     return False
+
+
+def valid_ip(address):
+    try:
+        host_bytes = address.split('.')
+        valid = [int(b) for b in host_bytes]
+        valid = [b for b in valid if 0 <= b <= 255]
+        return len(host_bytes) == 4 and len(valid) == 4
+    except (TypeError, ValueError, IndexError):
+        return False
+
+def convert_amnezia_xray_json_to_vless_str(amnezia_str: str) -> str | None:
+    """
+    Функция для конвертации AMnezia Xray JSON в VLESS строчку
+    :param amnezia_str: JSON-строка с настройками Amnezia Xray
+    :return: VLESS-строка либо None объект
+    """
+    try:
+        json_object = json.loads(amnezia_str)
+        outbounds = json_object["outbounds"][0]["settings"]["vnext"][0]
+        stream_settings = json_object["outbounds"][0]["streamSettings"]
+
+        address_and_port = f"{outbounds['address']}:{outbounds['port']}"
+        flow = outbounds["users"][0]["flow"]
+        user_id = outbounds["users"][0]["id"]
+        type_of_net = stream_settings["network"]
+        security = stream_settings["security"]
+        fp = stream_settings["realitySettings"]["fingerprint"]
+        pbk = stream_settings["realitySettings"]["publicKey"]
+        sni = stream_settings["realitySettings"]["serverName"]
+        sid = stream_settings["realitySettings"]["shortId"]
+
+        url = (f"vless://{user_id}@{address_and_port}?flow={flow}&type={type_of_net}&"
+               f"security={security}&fp={fp}&sni={sni}&pbk={pbk}&sid={sid}")
+    except Exception as ex:
+        app_logger.error(f"Не получилось конвертировать конфиг Amnezia!\n{ex}")
+        return None
+    return url
