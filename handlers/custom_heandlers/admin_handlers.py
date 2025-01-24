@@ -1,6 +1,6 @@
 from telebot.types import Message
 import datetime
-from config_data.config import ALLOWED_USERS
+from config_data.config import ALLOWED_USERS, DEFAULT_COMMANDS, ADMIN_COMMANDS
 from database.models import User, Server, VPNKey
 from keyboards.inline.admin_buttons import (users_markup, admin_markup, get_vpn_markup,
                                             get_servers_markup, delete_vpn_markup)
@@ -18,6 +18,7 @@ def admin_panel(message: Message):
         bot.set_state(message.from_user.id, AdminPanel.get_option)
     else:
         bot.send_message(message.from_user.id, "У вас недостаточно прав")
+        app_logger.warning(f"Пользователь {message.from_user.full_name} пытался войти в админ панель")
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_option)
@@ -42,15 +43,17 @@ def admin_panel_handler(call):
 @bot.callback_query_handler(func=None, state=AdminPanel.get_users)
 def get_user(call):
     """ Хендлер для работы с юзерами из админ панели """
+    bot.answer_callback_query(callback_query_id=call.id)
     if call.data == "Exit":
-        bot.answer_callback_query(callback_query_id=call.id)
+
         bot.send_message(call.message.chat.id, "Выберите опцию", reply_markup=admin_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся обратно к выбору опций.")
     else:
-        bot.answer_callback_query(callback_query_id=call.id)
         user_obj: User = User.get_by_id(call.data)
         vpn_key: VPNKey = VPNKey.get_or_none(user_obj.vpn_key)
+        app_logger.info(f"Администратор {call.from_user.full_name} запросил "
+                        f"информацию о пользователе {user_obj.full_name}")
         if vpn_key is not None:
             vpn_key = vpn_key.name
         bot.send_message(call.message.chat.id, f"Имя: {user_obj.full_name}\n"
@@ -77,7 +80,7 @@ def server_panel_handler(call):
     server_id = call.data
     server_obj: Server = Server.get_by_id(server_id)
 
-
+    app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о сервере {server_obj.location}")
     # Выдача всей информации по серверу
     bot.send_message(call.message.chat.id, f"Имя сервера: {server_obj.location}\n"
                                                f"Username: {server_obj.username}\n"
@@ -116,12 +119,14 @@ def vpn_panel_handler(call):
         server_id = call.data.split()[1]
         server_obj: Server = Server.get_by_id(server_id)
         server_obj.delete_instance()
+        app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
         bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален.")
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
     # Выдача всей информации по VPN ключу
     vpn_obj: VPNKey = VPNKey.get_by_id(call.data)
+    app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
     bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
                                             f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
                                            f"VPN KEY: {vpn_obj.key}\n"
@@ -139,6 +144,7 @@ def vpn_panel_handler(call):
     if "Cancel" in call.data:
         bot.send_message(call.message.chat.id, "Вы вернулись в админку.",
                          reply_markup=admin_markup())
+        app_logger.info(f"Администратор {call.from_user.full_name} вернулся в админку")
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         return
     if "Del - " in call.data:
@@ -160,11 +166,25 @@ def message_sending_handler(message: Message):
         bot.set_state(message.from_user.id, AdminPanel.send_message)
     else:
         bot.send_message(message.from_user.id, "У вас недостаточно прав")
+        app_logger.warning(f"Попытка доступа к /message_sending без прав администратора {message.from_user.full_name}")
 
 
 @bot.message_handler(state=AdminPanel.send_message)
 def send_message_to_users_handler(message: Message):
     """ Отправка сообщений пользователям """
+    # Проверка, что сообщение для рассылки - не одна из команд бота
+    total_commands = [f"/{elem[0]}" for elem in DEFAULT_COMMANDS]
+    total_commands.extend([f"/{elem[0]}" for elem in ADMIN_COMMANDS])
+    total_commands.extend(["Серверы", "Справка", "Инструкция"])
+    if message.text in total_commands:
+        bot.send_message(message.from_user.id, "Это одна из команд бота")
+        bot.set_state(message.from_user.id, None)
+        return
+
+    # Проверка, что сообщение не пустое
+    if not message.text:
+        bot.send_message(message.from_user.id, "Сообщение не может быть пустым.")
+        return
     app_logger.info(f"Администратор {message.from_user.full_name} начал рассылку сообщений: {message.text}")
 
     bot.send_message(message.chat.id, "Начинаю рассылку...")

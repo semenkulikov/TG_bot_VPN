@@ -28,17 +28,25 @@ def get_server_handler(call):
 
     cur_user: User = User.get(User.user_id == call.from_user.id)
     cur_server: Server = Server.get_by_id(server_id)
+
+    # Проверка на то, что текущий VPN ключ пользователя удален.
+    try:
+        VPNKey.get_by_id(cur_user.vpn_key)
+    except Exception:
+        app_logger.warning(f"Внимание! У пользователя {cur_user.full_name} не нашлось ключа VPN!")
+        cur_user.vpn_key = None
+        cur_user.save()
+
     app_logger.info(f"Пользователь {cur_user.full_name} выбрал сервер {cur_server.location}")
 
-    # Если у пользователя уже есть активный vpn ключ, отменяем его
-    if cur_user.vpn_key is not None:
-        users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
-        users_vpn.is_valid = True
-        users_vpn.save()
-        app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
     # Получение всех vpn ключей данного сервера и выбор одного
     for vpn_key_obj in cur_server.keys:
         if vpn_key_obj.is_valid:
+            if cur_user.vpn_key is not None:
+                users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
+                users_vpn.is_valid = True
+                users_vpn.save()
+                app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
             cur_user.vpn_key = vpn_key_obj
             cur_user.save()
             vpn_key_obj.is_valid = False
@@ -49,7 +57,9 @@ def get_server_handler(call):
             #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
             #                      f"URL для подключения:\n\n{vpn_key_obj.key}")
             bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                                                        f"URL для подключения:\n\n{vpn_key_obj.key}")
+                                                        f"Имя ключа: {vpn_key_obj.name}\n"
+                                                   f"Сервер: {cur_server.location}\n"
+                                                   f"URL для подключения:\n\n{vpn_key_obj.key}")
             bot.set_state(call.message.chat.id, None)
             return
 
@@ -59,10 +69,20 @@ def get_server_handler(call):
 
     # Заглушка на пока что.
     bot.send_message(call.message.chat.id, "К сожалению, для данного сервера пока нет свободных ключей.")
+    if cur_user.vpn_key is not None:
+        bot.send_message(call.message.chat.id, f"Ваш текущий ключ: {cur_user.vpn_key.name}\n"
+                                               f"URL для подключения:\n\n{cur_user.vpn_key.key}")
     return
 
     new_key: VPNKey = generate_key(cur_server)
     app_logger.info(f"Сгенерирован новый ключ {new_key.name}!")
+
+    if cur_user.vpn_key is not None:
+        users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
+        users_vpn.is_valid = True
+        users_vpn.save()
+        app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
+
     cur_user.vpn_key = new_key
     cur_user.save()
 
@@ -74,5 +94,7 @@ def get_server_handler(call):
     #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
     #                      f"URL для подключения:\n\n{new_key.key}")
     bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                                                        f"URL для подключения:\n\n{new_key.key}")
+                                           f"Имя ключа: {vpn_key_obj.name}\n"
+                                           f"Сервер: {cur_server.location}\n"
+                                           f"URL для подключения:\n\n{vpn_key_obj.key}")
     bot.set_state(call.message.chat.id, None)
