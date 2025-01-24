@@ -56,6 +56,11 @@ def get_server_handler(call):
     # Если нет свободных ключей, генерируем новый
     app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей! "
                        f"Генерирую новый...")
+
+    # Заглушка на пока что.
+    bot.send_message("К сожалению, для данного сервера пока нет свободных ключей.")
+    return
+
     new_key: VPNKey = generate_key(cur_server)
     app_logger.info(f"Сгенерирован новый ключ {new_key.name}!")
     cur_user.vpn_key = new_key
