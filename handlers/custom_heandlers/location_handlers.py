@@ -58,7 +58,7 @@ def get_server_handler(call):
                        f"Генерирую новый...")
 
     # Заглушка на пока что.
-    bot.send_message("К сожалению, для данного сервера пока нет свободных ключей.")
+    bot.send_message(call.message.chat.id, "К сожалению, для данного сервера пока нет свободных ключей.")
     return
 
     new_key: VPNKey = generate_key(cur_server)
