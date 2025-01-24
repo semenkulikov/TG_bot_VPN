@@ -6,7 +6,7 @@ from keyboards.inline.admin_buttons import (users_markup, admin_markup, get_vpn_
                                             get_servers_markup, delete_vpn_markup)
 from loader import bot, app_logger
 from states.states import AdminPanel
-from utils.functions import valid_ip, convert_amnezia_xray_json_to_vless_str
+from utils.functions import valid_ip, convert_amnezia_xray_json_to_vless_str, get_all_commands_bot
 
 
 @bot.message_handler(commands=["admin_panel"])
@@ -96,6 +96,12 @@ def server_panel_handler(call):
 @bot.message_handler(state=AdminPanel.add_server)
 def add_server(message: Message):
     """ Добавление нового сервера """
+
+    if message.text in get_all_commands_bot():
+        bot.send_message(message.from_user.id, "Это одна из команд бота")
+        bot.set_state(message.from_user.id, None)
+        return
+
     try:
         server_data = [item.strip() for item in message.text.split("\n")]
         if len(server_data)!= 5:
@@ -179,10 +185,8 @@ def message_sending_handler(message: Message):
 def send_message_to_users_handler(message: Message):
     """ Отправка сообщений пользователям """
     # Проверка, что сообщение для рассылки - не одна из команд бота
-    total_commands = [f"/{elem[0]}" for elem in DEFAULT_COMMANDS]
-    total_commands.extend([f"/{elem[0]}" for elem in ADMIN_COMMANDS])
-    total_commands.extend(["Серверы", "Справка", "Инструкция"])
-    if message.text in total_commands:
+
+    if message.text in get_all_commands_bot():
         bot.send_message(message.from_user.id, "Это одна из команд бота")
         bot.set_state(message.from_user.id, None)
         return
