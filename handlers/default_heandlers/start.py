@@ -27,7 +27,7 @@ def bot_start(message: Message):
             app_logger.info(f"Внимание! Новый юзер: {message.from_user.full_name} - {message.from_user.username}")
             User.create(user_id=message.from_user.id,
                         full_name=message.from_user.full_name,
-                        username=message.from_user.username,
+                        username=message.from_user.username if message.from_user.username is not None else "None",
                         is_premium=message.from_user.is_premium,
                         is_subscribed=is_sub)
         commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]

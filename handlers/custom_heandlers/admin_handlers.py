@@ -1,3 +1,4 @@
+import peewee
 from telebot.types import Message
 import datetime
 from config_data.config import ALLOWED_USERS, DEFAULT_COMMANDS, ADMIN_COMMANDS
@@ -280,13 +281,20 @@ def save_vpn_handler(call):
     server_id = call.data
     server_obj: Server = Server.get_by_id(server_id)
     with bot.retrieve_data(call.from_user.id, call.from_user.id) as data:
-        vpn_key = VPNKey.create(
-            name=data["vpn_key_name"],
-            key=data["vpn_key_key"],
-            qr_code=data["vpn_key_key"],  # Заглушка, потом будут нормальные пути
-            server=server_obj,
-        )
-        app_logger.info(f"Администратор {call.message.from_user.full_name} добавил VPN ключ {vpn_key.name} "
-                        f"к серверу {server_obj.location}")
-        bot.send_message(call.message.chat.id, f"VPN ключ {vpn_key.name} добавлен к серверу {server_obj.location}.")
+        try:
+            vpn_key = VPNKey.create(
+                name=data["vpn_key_name"],
+                key=data["vpn_key_key"],
+                qr_code=data["vpn_key_key"] + ":qr_code",  # Заглушка, потом будут нормальные пути
+                server=server_obj,
+            )
+        except peewee.IntegrityError:
+            bot.send_message(call.message.chat.id, "Ключ с таким именем уже существует!")
+            bot.send_message(call.message.chat.id, "Вы вышли в главное меню")
+            app_logger.warning(f"Попытка создания дубликата VPN ключа {data['vpn_key_name']}!")
+
+        else:
+            app_logger.info(f"Администратор {call.message.from_user.full_name} добавил VPN ключ {vpn_key.name} "
+                            f"к серверу {server_obj.location}")
+            bot.send_message(call.message.chat.id, f"VPN ключ {vpn_key.name} добавлен к серверу {server_obj.location}.")
         bot.set_state(call.message.chat.id, None)
