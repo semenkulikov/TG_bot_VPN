@@ -59,7 +59,8 @@ def get_server_handler(call):
             bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
                                                         f"Имя ключа: {vpn_key_obj.name}\n"
                                                    f"Сервер: {cur_server.location}\n"
-                                                   f"URL для подключения:\n\n{vpn_key_obj.key}")
+                                                   f"URL для подключения:\n\n`{vpn_key_obj.key}`",
+                             parse_mode="Markdown")
             bot.set_state(call.message.chat.id, None)
             return
 

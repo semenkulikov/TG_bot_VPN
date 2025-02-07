@@ -152,11 +152,12 @@ def vpn_panel_handler(call):
         app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
         bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
                                                 f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
-                                               f"VPN KEY: {vpn_obj.key}\n"
+                                               f"VPN KEY: `{vpn_obj.key}`\n"
                                                f"Свободен: {"Да" if vpn_obj.is_valid else "Нет"}\n"
                                                f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
                                                f"Создан: {vpn_obj.created_at}",
-                         reply_markup=delete_vpn_markup(vpn_obj.id))
+                         reply_markup=delete_vpn_markup(vpn_obj.id),
+                         parse_mode="Markdown")
         bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
     elif "Cancel" in call.data:
         # Возврат в меню серверов
