@@ -1,6 +1,6 @@
 import datetime
 import os.path
-
+from peewee_migrate import Router
 from config_data.config import BASE_DIR
 import peewee
 
@@ -24,7 +24,9 @@ class Server(BaseModel):
 
 class VPNKey(BaseModel):
     """ Модель для VPN ключа. Привязан к серверу. Имеет qr код (картинка) для подключения """
-    server = peewee.ForeignKeyField(Server, related_name="keys")
+    server = peewee.ForeignKeyField(Server, related_name="keys",
+                                     on_delete="cascade",
+                                     on_update="cascade")
     name = peewee.CharField()
     key = peewee.CharField(unique=True)
     qr_code = peewee.CharField(unique=True)
@@ -40,7 +42,8 @@ class User(BaseModel):
     username = peewee.CharField()
     is_premium = peewee.BooleanField(null=True)
     is_subscribed = peewee.BooleanField(default=False)
-    vpn_key = peewee.ForeignKeyField(VPNKey, related_name="users", null=True)
+    vpn_key = peewee.ForeignKeyField(VPNKey, related_name="users", null=True, on_update="set null",
+                                     on_delete="set null")
 
 
 class Group(BaseModel):

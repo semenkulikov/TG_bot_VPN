@@ -134,6 +134,15 @@ def vpn_panel_handler(call):
         server_obj.delete_instance()
         app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
         bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален.")
+
+        # Удаление связанных VPN ключей
+        for vpn_key in VPNKey.select().where(VPNKey.server == server_id):
+            for user in vpn_key.users:
+                user.vpn_key = None
+                user.save()
+            app_logger.info(f"VPN ключ {vpn_key.name} удален!")
+            vpn_key.delete_instance()
+
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
@@ -174,6 +183,11 @@ def vpn_panel_handler(call):
         bot.send_message(call.message.chat.id, f"VPN ключ {vpn_obj.name} удален.")
         app_logger.info(f"Администратор удалил VPN ключ {vpn_obj.name}")
         vpn_obj.delete_instance()
+
+        # Обнуление полей vpn_key в тех моделях пользователей, у которых был этот ключ
+        for user in User.select().where(User.vpn_key == vpn_key_id):
+            user.vpn_key = None
+            user.save()
 
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
     else:
