@@ -41,28 +41,28 @@ def get_server_handler(call):
 
     # Получение всех vpn ключей данного сервера и выбор одного
     for vpn_key_obj in cur_server.keys:
-        if vpn_key_obj.is_valid:
-            if cur_user.vpn_key is not None:
-                users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
-                users_vpn.is_valid = True
-                users_vpn.save()
-                app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
-            cur_user.vpn_key = vpn_key_obj
-            cur_user.save()
-            vpn_key_obj.is_valid = False
-            vpn_key_obj.save()
-            app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал ключ {vpn_key_obj.name}")
-            # with open(vpn_key_obj.qr_code, "rb") as qr_code:
-            #     bot.send_photo(call.message.chat.id, qr_code,
-            #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-            #                      f"URL для подключения:\n\n{vpn_key_obj.key}")
-            bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                                                        f"Имя ключа: {vpn_key_obj.name}\n"
-                                                   f"Сервер: {cur_server.location}\n"
-                                                   f"URL для подключения:\n\n`{vpn_key_obj.key}`",
-                             parse_mode="Markdown")
-            bot.set_state(call.message.chat.id, None)
-            return
+        # if vpn_key_obj.is_valid:
+        if cur_user.vpn_key is not None:
+            users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
+            users_vpn.is_valid = True
+            users_vpn.save()
+            app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
+        cur_user.vpn_key = vpn_key_obj
+        cur_user.save()
+        vpn_key_obj.is_valid = False
+        vpn_key_obj.save()
+        app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал ключ {vpn_key_obj.name}")
+        # with open(vpn_key_obj.qr_code, "rb") as qr_code:
+        #     bot.send_photo(call.message.chat.id, qr_code,
+        #                      f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+        #                      f"URL для подключения:\n\n{vpn_key_obj.key}")
+        bot.send_message(call.message.chat.id, f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
+                                                    f"Имя ключа: {vpn_key_obj.name}\n"
+                                               f"Сервер: {cur_server.location}\n"
+                                               f"URL для подключения:\n\n`{vpn_key_obj.key}`",
+                         parse_mode="Markdown")
+        bot.set_state(call.message.chat.id, None)
+        return
 
     # Если нет свободных ключей, генерируем новый
     app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей! "
@@ -72,7 +72,8 @@ def get_server_handler(call):
     bot.send_message(call.message.chat.id, "К сожалению, для данного сервера пока нет свободных ключей.")
     if cur_user.vpn_key is not None:
         bot.send_message(call.message.chat.id, f"Ваш текущий ключ: {cur_user.vpn_key.name}\n"
-                                               f"URL для подключения:\n\n{cur_user.vpn_key.key}")
+                                               f"URL для подключения:\n\n`{cur_user.vpn_key.key}`",
+                         parse_mode="Markdown")
     return
 
     new_key: VPNKey = generate_key(cur_server)
