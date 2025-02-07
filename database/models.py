@@ -1,6 +1,5 @@
 import datetime
 import os.path
-from peewee_migrate import Router
 from config_data.config import BASE_DIR
 import peewee
 
