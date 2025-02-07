@@ -236,7 +236,7 @@ def add_vpn_key_name_handler(message: Message):
     app_logger.info(f"Администратор {message.from_user.full_name} ввел название VPN ключа: {message.text}")
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_name"] = message.text
-    bot.send_message(message.from_user.id, "Введите VPN KEY в формате json, не ссылка")
+    bot.send_message(message.from_user.id, "Введите VPN KEY в формате json либо как vless://")
     bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_key)
 
 
@@ -250,12 +250,15 @@ def add_vpn_key_key_handler(message: Message):
         return
 
     app_logger.info(f"Администратор {message.from_user.full_name} ввел VPN ключ")
-    vless_str = convert_amnezia_xray_json_to_vless_str(message.text)
-    if vless_str is None:
-        bot.send_message(message.from_user.id, "Не удалось преобразовать JSON в VLESS строку. "
-                                               "Проверьте правильность ввода.")
-        app_logger.warning("Не удалось преобразовать json конфиг в vless строку!")
-        return
+    if "vless://" not in message.text:
+        vless_str = convert_amnezia_xray_json_to_vless_str(message.text)
+        if vless_str is None:
+            bot.send_message(message.from_user.id, "Не удалось преобразовать JSON в VLESS строку. "
+                                                   "Проверьте правильность ввода.")
+            app_logger.warning("Не удалось преобразовать json конфиг в vless строку!")
+            return
+    else:
+        vless_str = message.text
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_key"] = vless_str
     bot.send_message(message.from_user.id, "Выберите сервер, к которому принадлежит ключ",
@@ -289,7 +292,7 @@ def save_vpn_handler(call):
                 server=server_obj,
             )
         except peewee.IntegrityError:
-            bot.send_message(call.message.chat.id, "Ключ с таким именем уже существует!")
+            bot.send_message(call.message.chat.id, "Такой ключ уже существует!")
             bot.send_message(call.message.chat.id, "Вы вышли в главное меню")
             app_logger.warning(f"Попытка создания дубликата VPN ключа {data['vpn_key_name']}!")
 
