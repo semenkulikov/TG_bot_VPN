@@ -30,3 +30,15 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 
 DEFAULT_SERVER_USER = os.getenv("DEFAULT_SERVER_USER")
 DEFAULT_SERVER_PASSWORD = os.getenv("DEFAULT_SERVER_PASSWORD")
+
+XRAY_CONFIG_PATH = "/usr/local/etc/xray/config.json"
+QR_CODE_DIR = os.path.join(BASE_DIR, "qr_codes")  # Папка для хранения сгенерированных QR-кодов
+
+# Убедимся, что папка для QR-кодов существует
+if not os.path.exists(QR_CODE_DIR):
+    os.makedirs(QR_CODE_DIR)
+
+XRAY_REALITY_SERVER_NAME = ""
+XRAY_REALITY_PUBLIC_KEY = ""
+XRAY_REALITY_SHORTID = ""
+XRAY_REALITY_FINGERPRINT = ""
