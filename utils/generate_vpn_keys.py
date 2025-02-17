@@ -1,263 +1,172 @@
-# import socket
-# from typing import Optional
-# import paramiko
-# import pexpect
-# from pexpect import pxssh
-# from database.models import VPNKey, Server
-# import os
-# from config_data.config import BASE_DIR, DEFAULT_SERVER_USER, DEFAULT_SERVER_PASSWORD
-# from loader import app_logger
-#
-#
-# basic_config_server_sh = """
-# # echo 'Hello, world!' && whoami &&
-# sudo apt install jq openssl &&
-# curl -L https://codeload.github.com/EvgenyNerush/easy-xray/tar.gz/main | tar -xz &&
-# cd easy-xray-main &&
-# chmod +x ex.sh &&
-# sudo ./ex.sh install &&
-# sudo ./ex.sh conf
-# """
-#
-#
-# user_settings = f"""
-# sudo useradd -m -s /bin/bash -G sudo {DEFAULT_SERVER_USER} &&
-# passwd {DEFAULT_SERVER_USER}
-# """
-#
-# test_script = """
-# """
-#
-#
-# def execute_ssh_command(
-#     ip: str,
-#     username: str,
-#     password: str,
-#     command: str,
-#     timeout: int = 120
-# ) -> Optional[str]:
-#     try:
-#         with paramiko.SSHClient() as cl:
-#             cl.load_system_host_keys()
-#             cl.set_missing_host_key_policy(paramiko.RejectPolicy())
-#             cl.connect(
-#                 hostname=ip,
-#                 username=username,
-#                 password=password,
-#                 look_for_keys=False,
-#                 allow_agent=False,
-#                 timeout=10
-#             )
-#             stdin, stdout, stderr = cl.exec_command(command, timeout=timeout)
-#             output = stdout.read().decode('utf-8')
-#             error = stderr.read().decode('utf-8')
-#             if error:
-#                 app_logger.error(f"Error executing command: {error}")
-#             return output
-#     except (paramiko.AuthenticationException, paramiko.SSHException, socket.error, Exception) as e:
-#         app_logger.error(f"SSH command execution failed: {e}")
-#         return None
-#
-#
-# def generate_key(server_obj: Server) -> VPNKey:
-#     """
-#     Функция для генерации VPN ключа
-#     :param server_obj: объект Server
-#     :return: VPNKey
-#     """
-#     # Проверка, настроен ли севрер
-#     try:
-#         with paramiko.SSHClient() as cl:
-#             cl.load_system_host_keys()
-#             cl.set_missing_host_key_policy(paramiko.RejectPolicy())
-#             cl.connect(
-#                 hostname=server_obj.ip_address,
-#                 username=server_obj.username,
-#                 password=server_obj.password,
-#                 look_for_keys=False,
-#                 allow_agent=False,
-#                 timeout=10
-#             )
-#             stdin, stdout, stderr = cl.exec_command(f"id {DEFAULT_SERVER_USER}", timeout=120)
-#             output = stderr.read().decode('utf-8')
-#             if "no such user" in output.lower():
-#                 app_logger.warning(f"Сервер {server_obj.location} не настроен! Начинаю первичную настройку...")
-#                 # Создаем нового пользователя
-#                 stdin, stdout, stderr = cl.exec_command(f"useradd -m -s /bin/bash -G sudo "
-#                                                         f"{DEFAULT_SERVER_USER}", timeout=20)
-#                 print(stdout.read().decode('utf-8'))
-#                 app_logger.info(f"Создан новый пользователь {DEFAULT_SERVER_USER} на сервере {server_obj.location}")
-#
-#                 # Устанавливаем пароль для нового пользователя
-#                 p_obj = pxssh.pxssh()
-#                 p_obj.login(server_obj.ip_address, server_obj.username, server_obj.password)
-#                 p_obj.sendline(f"passwd {DEFAULT_SERVER_USER}")
-#                 p_obj.expect('New password:')
-#                 p_obj.sendline(DEFAULT_SERVER_PASSWORD)
-#                 p_obj.expect('Retype new password:')
-#                 p_obj.sendline(DEFAULT_SERVER_PASSWORD)
-#                 p_obj.interact()
-#                 p_obj.close()
-#                 app_logger.info("Задан пароль для дефолтного пользователя.")
-#
-#             # Переключаемся на дефолтного пользователя
-#             cl.exec_command(f"su - {DEFAULT_SERVER_USER}")
-#
-#             # Проверка
-#             stdin, stdout, stderr = cl.exec_command(f"whoami")
-#             app_logger.info(f"Переключились на пользователя {stdout.read().decode('utf-8')}")
-#
-#     except Exception as ex:
-#         app_logger.error(f"Can't connect to server {server_obj.location}\n{ex}")
-#         return None
-#     # Базовая настройка сервера
-#     print(execute_ssh_command(
-#         ip=server_obj.ip_address,
-#         username=server_obj.username,
-#         password=server_obj.password,
-#         command=basic_config_server_sh
-#     ))
-#
-#     # Установка и настройка протокола xray
-#     # print(execute_ssh_command(
-#     #     ip=server_obj.ip_address,
-#     #     username=DEFAULT_SERVER_USER,
-#     #     password=DEFAULT_SERVER_PASSWORD,
-#     #     command=test_script
-#     # ))
-#
-#     # result_key = VPNKey.create(
-#     #     server=server_obj,
-#     #     name=f"VPN Key {server_obj.location} {len(server_obj.keys) + 1}",
-#     #     key=f"{server_obj.location}_{server_obj.id} {len(server_obj.keys) + 1}",
-#     #     qr_code=f"test path {len(server_obj.keys) + 1}",
-#     #     is_valid=True
-#     # )
-#     # return result_key
-#
-#
-# if __name__ == '__main__':
-#     generate_key(Server.get_by_id(3))
-
 import os
 import json
 import uuid
 import tempfile
 import paramiko
 import qrcode
-from pexpect import pxssh
+import secrets
+import random
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
+from loader import app_logger
+from database.models import VPNKey, Server
+import copy
 from config_data.config import (
     DEFAULT_SERVER_USER,
     DEFAULT_SERVER_PASSWORD,
     XRAY_CONFIG_PATH,
     QR_CODE_DIR,
-    XRAY_REALITY_SERVER_NAME,
-    XRAY_REALITY_PUBLIC_KEY,
-    XRAY_REALITY_SHORTID,
-    XRAY_REALITY_FINGERPRINT
+    XRAY_REALITY_FINGERPRINT,
+    DOMAINS_LIST,
 )
-from loader import app_logger
-from database.models import VPNKey, Server
-import secrets
-import random
-import string
-from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
 
-# Функции для генерации параметров, если они не заданы
 
-def generate_random_domain() -> str:
-    """Генерирует случайный домен вида <8-символьная строка>.com."""
-    return random.choice(["", "", ""])
-
-def generate_public_key() -> str:
+def generate_ed25519_keys() -> str:
     """
-    Генерирует пару ключей Ed25519 и возвращает публичный ключ в hex-формате.
-    Приватный ключ нужно сохранить в безопасности (например, в защищённом хранилище) – здесь возвращается только публичная часть.
+    Генерирует пару ключей Ed25519 и возвращает в hex-формате.
     """
     private_key = ed25519.Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
+    private_bytes = private_key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption()
+    ).hex()
     public_bytes = public_key.public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw
-    )
-    return public_bytes.hex()
+    ).hex()
+    return {"private": private_bytes, "public": public_bytes}
 
-def generate_shortid() -> str:
-    """Генерирует случайную шестизначную строку (6 hex символов)."""
-    return secrets.token_hex(3)
 
-def default_fingerprint() -> str:
-    """Возвращает значение по умолчанию для TLS-фингерпринта."""
-    return "chrome"
+def ensure_reality_params(config_template: dict) -> dict:
+    # Выбираем случайный домен из DOMAINS_LIST
+    domain = random.choice(DOMAINS_LIST)
+    # Генерируем ключи (приватный и публичный)
+    keys = generate_ed25519_keys()
+    # Генерируем список shortIds (например, 2 значения, по 16 символов в каждом)
+    short_ids = [secrets.token_hex(4) for _ in range(2)]
 
-# Обновляем (если необходимо) глобальные параметры в конфиге.
-# В продакшене рекомендуется сохранять их в надёжном хранилище, а не прямо в config.py.
-def ensure_reality_params():
-    from config_data import config  # Импортируем модуль конфигурации
-    if not config.XRAY_REALITY_SERVER_NAME:
-        config.XRAY_REALITY_SERVER_NAME = generate_random_domain()
-        app_logger.info(f"Сгенерирован XRAY_REALITY_SERVER_NAME: {config.XRAY_REALITY_SERVER_NAME}")
-    if not config.XRAY_REALITY_PUBLIC_KEY:
-        config.XRAY_REALITY_PUBLIC_KEY = generate_public_key()
-        app_logger.info(f"Сгенерирован XRAY_REALITY_PUBLIC_KEY: {config.XRAY_REALITY_PUBLIC_KEY}")
-    if not config.XRAY_REALITY_SHORTID:
-        config.XRAY_REALITY_SHORTID = generate_shortid()
-        app_logger.info(f"Сгенерирован XRAY_REALITY_SHORTID: {config.XRAY_REALITY_SHORTID}")
-    if not config.XRAY_REALITY_FINGERPRINT:
-        config.XRAY_REALITY_FINGERPRINT = default_fingerprint()
-        app_logger.info(f"Установлен XRAY_REALITY_FINGERPRINT: {config.XRAY_REALITY_FINGERPRINT}")
+    # Создаем глубокую копию шаблона, чтобы не изменять оригинал
+    config = copy.deepcopy(config_template)
 
+    # Обновляем параметры в секции realitySettings
+    reality = config["inbounds"][1]["streamSettings"]["realitySettings"]
+    reality["dest"] = f"{domain}:443"
+    reality["serverNames"] = [domain]
+    reality["privateKey"] = keys["private"]
+    reality["shortIds"] = short_ids
+
+    # Обновляем домены в routing.rules (если указаны)
+    for rule in config.get("routing", {}).get("rules", []):
+        if "domain" in rule:
+            rule["domain"] = [domain]
+
+    return config
+
+
+# Новый SECURE_XRAY_CONFIG, адаптированный под рабочий конфиг реальной Xray конфигурации
 SECURE_XRAY_CONFIG = {
     "log": {
-        "loglevel": "warning"
+        "loglevel": "debug"
     },
     "inbounds": [
         {
+            "tag": "dokodemo-in",
             "port": 443,
+            "protocol": "dokodemo-door",
+            "settings": {
+                "address": "127.0.0.1",
+                "port": 4431,
+                "network": "tcp"
+            },
+            "sniffing": {
+                "enabled": True,
+                "destOverride": ["tls"],
+                "routeOnly": True
+            }
+        },
+        {
+            "listen": "127.0.0.1",
+            "port": 4431,
             "protocol": "vless",
             "settings": {
-                "clients": []
+                "clients": [
+                    {
+                        "id": ""  # Будет обновлено утилитой jq с новым UUID
+                    }
+                ],
+                "decryption": "none"
             },
             "streamSettings": {
                 "network": "tcp",
                 "security": "reality",
                 "realitySettings": {
-                    "show": False,
-                    "dest": "127.0.0.1:80",
-                    "xver": 1,
-                    "serverName": XRAY_REALITY_SERVER_NAME,
-                    "publicKey": XRAY_REALITY_PUBLIC_KEY,
-                    "shortId": XRAY_REALITY_SHORTID,
-                    "fingerprint": XRAY_REALITY_FINGERPRINT
+                    "dest": f"",
+                    "serverNames": [],
+                    "privateKey": "",
+                    "shortIds": ""
                 }
+            },
+            "sniffing": {
+                "enabled": True,
+                "destOverride": ["http", "tls", "quic"],
+                "routeOnly": True
             }
         }
     ],
     "outbounds": [
         {
             "protocol": "freedom",
-            "settings": {}
+            "tag": "direct"
+        },
+        {
+            "protocol": "blackhole",
+            "tag": "block"
         }
-    ]
+    ],
+    "routing": {
+        "rules": [
+            {
+                "inboundTag": ["dokodemo-in"],
+                "domain": [],
+                "outboundTag": "direct"
+            },
+            {
+                "inboundTag": ["dokodemo-in"],
+                "outboundTag": "block"
+            }
+        ]
+    }
 }
 
 
 def execute_ssh_command(ip: str, username: str, password: str, command: str, timeout: int = 60) -> str:
-    """
-    Выполняет SSH-команду на сервере и возвращает вывод.
-    """
+    client = paramiko.SSHClient()
     try:
-        with paramiko.SSHClient() as client:
-            client.load_system_host_keys()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(hostname=ip, username=username, password=password, timeout=10)
-            stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
-            output = stdout.read().decode('utf-8')
-            return output.strip()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            hostname=ip,
+            username=username,
+            password=password,
+            timeout=10,
+            allow_agent=False,
+            look_for_keys=False
+        )
+        stdin, stdout, stderr = client.exec_command(command, timeout=timeout, get_pty=True)
+        output = stdout.read().decode('utf-8').strip()
+        err = stderr.read().decode('utf-8').strip()
+        if err:
+            app_logger.error(f"Ошибка выполнения команды на {ip}: {err}")
+        return output
     except Exception as ex:
-        app_logger.error(f"Ошибка при выполнении команды на {ip}: {ex}")
+        app_logger.error(f"Ошибка при подключении к {ip}: {ex}")
         return ""
+    finally:
+        client.close()
+
+
 
 
 def setup_server(server_obj: Server) -> bool:
@@ -265,49 +174,81 @@ def setup_server(server_obj: Server) -> bool:
     Настраивает сервер для работы VPN.
 
     Алгоритм:
-      1. Подключается по SSH к серверу (используя server_obj.username / password).
-      2. Проверяет наличие дефолтного пользователя (DEFAULT_SERVER_USER). Если его нет, создаёт пользователя и задаёт пароль.
-      3. С помощью SFTP загружает на сервер максимально защищённый конфиг Xray (с настройками Xray Reality).
-      4. Перезапускает службу Xray.
+      1. Подключение по SSH с правами администратора.
+      2. Проверка наличия DEFAULT_SERVER_USER. Если отсутствует, создаём пользователя и устанавливаем пароль.
+         Для установки пароля используется команда chpasswd, что исключает необходимость интерактивного ввода.
+      3. С использованием SFTP загружается обновлённый и безопасный конфиг Xray.
+      4. Перезапуск службы Xray.
 
-    :param server_obj: объект Server с полями ip_address, username, password, location и т.д.
+    :param server_obj: объект Server с данными для подключения.
     :return: True, если настройка прошла успешно, иначе False.
     """
     try:
-        # Подключаемся как администратор сервера
-        with paramiko.SSHClient() as cl:
-            cl.load_system_host_keys()
-            cl.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            cl.connect(
+        # Подключаемся к серверу под администратором
+        with paramiko.SSHClient() as ssh_admin:
+            ssh_admin.load_system_host_keys()
+            ssh_admin.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh_admin.connect(
                 hostname=server_obj.ip_address,
                 username=server_obj.username,
                 password=server_obj.password,
-                look_for_keys=False,
+                timeout=10,
                 allow_agent=False,
-                timeout=10
+                look_for_keys=False
             )
-            # Проверяем наличие DEFAULT_SERVER_USER
-            stdin, stdout, stderr = cl.exec_command(f"id {DEFAULT_SERVER_USER}", timeout=30)
-            error_output = stderr.read().decode('utf-8')
-            if "no such user" in error_output.lower():
+            # Проверяем наличие пользователя DEFAULT_SERVER_USER
+            check_cmd = f"id {DEFAULT_SERVER_USER}"
+            stdin, stdout, stderr = ssh_admin.exec_command(check_cmd, timeout=30)
+            error_output = stderr.read().decode('utf-8').lower()
+            if "no such user" in error_output:
                 app_logger.info(
                     f"Пользователь {DEFAULT_SERVER_USER} не найден на сервере {server_obj.location}. Создаем его.")
-                cl.exec_command(f"useradd -m -s /bin/bash -G sudo {DEFAULT_SERVER_USER}", timeout=20)
-                # Устанавливаем пароль для нового пользователя через pxssh
-                try:
-                    p_obj = pxssh.pxssh(timeout=30)
-                    p_obj.login(server_obj.ip_address, server_obj.username, server_obj.password)
-                    p_obj.sendline(f"passwd {DEFAULT_SERVER_USER}")
-                    p_obj.expect('New password:')
-                    p_obj.sendline(DEFAULT_SERVER_PASSWORD)
-                    p_obj.expect('Retype new password:')
-                    p_obj.sendline(DEFAULT_SERVER_PASSWORD)
-                    p_obj.prompt()
-                    p_obj.logout()
-                    app_logger.info(f"Пароль для {DEFAULT_SERVER_USER} успешно установлен.")
-                except Exception as e:
-                    app_logger.error(f"Ошибка при установке пароля для {DEFAULT_SERVER_USER}: {e}")
-                    return False
+                # Создаем пользователя
+                ssh_admin.exec_command(f"useradd -m -s /bin/bash -G sudo {DEFAULT_SERVER_USER}", timeout=20)
+                # Устанавливаем пароль с помощью chpasswd (без интерактивного ввода)
+                passwd_cmd = f'echo "{DEFAULT_SERVER_USER}:{DEFAULT_SERVER_PASSWORD}" | chpasswd'
+                ssh_admin.exec_command(passwd_cmd, timeout=20)
+                app_logger.info(f"Пользователь {DEFAULT_SERVER_USER} создан и пароль установлен.")
+            else:
+                app_logger.info(f"Пользователь {DEFAULT_SERVER_USER} уже существует")
+        update_jq_cmd = (
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt update && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt upgrade -y && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt install -y jq"
+        )
+        execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=update_jq_cmd,
+            timeout=300  # увеличен timeout, чтобы команды apt успели выполниться
+        )
+        app_logger.info(f"Системные компоненты обновлены, зависимости установлены.")
+        # Добавьте этот блок в функцию setup_server после установки пользователя (и после apt update/upgrade+jq), но до загрузки конфигурации через SFTP:
+        xray_check_cmd = "which xray"
+        xray_installed = execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=xray_check_cmd,
+            timeout=30
+        )
+        if not xray_installed:
+            app_logger.info("Xray не найден, начинаю установку с использованием официального скрипта.")
+            install_xray_cmd = (
+                "curl -O https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh && "
+                f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S bash install-release.sh"
+            )
+            execute_ssh_command(
+                ip=server_obj.ip_address,
+                username=DEFAULT_SERVER_USER,
+                password=DEFAULT_SERVER_PASSWORD,
+                command=install_xray_cmd,
+                timeout=300
+            )
+            app_logger.info(f"Установка Xray выполнена успешно.")
+        else:
+            app_logger.info("Xray уже установлен")
         # Подключаемся для загрузки конфигурации Xray
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
@@ -316,27 +257,47 @@ def setup_server(server_obj: Server) -> bool:
             hostname=server_obj.ip_address,
             username=DEFAULT_SERVER_USER,
             password=DEFAULT_SERVER_PASSWORD,
-            timeout=10
+            timeout=10,
+            allow_agent=False,
+            look_for_keys=False
         )
         sftp = ssh.open_sftp()
-        # Сохраняем локально наш безопасный конфиг
+
+        # заполняем конфигурацию данными
+        final_config = ensure_reality_params(SECURE_XRAY_CONFIG)
+        # Сохраняем локально безопасный конфиг Xray
         local_config_path = os.path.join(tempfile.gettempdir(), f"secure_xray_config_{server_obj.id}.json")
         with open(local_config_path, "w") as f:
-            json.dump(SECURE_XRAY_CONFIG, f, indent=2)
-        # Загружаем файл на сервер
-        sftp.put(local_config_path, XRAY_CONFIG_PATH)
-        app_logger.info(f"Безопасный Xray конфиг загружен на сервер {server_obj.ip_address} по пути {XRAY_CONFIG_PATH}")
+            json.dump(final_config, f, indent=2)
+        # Загружаем конфиг на сервер
+
+        temp_remote_path = f"/tmp/secure_xray_config_{server_obj.id}.json"
+        sftp.put(local_config_path, temp_remote_path)
+        app_logger.info(f"Конфигурационный файл загружен во временную директорию: {temp_remote_path}")
+
+        # Перемещаем файл с помощью sudo, чтобы обойти ограничение прав доступа.
+        move_cmd = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S mv {temp_remote_path} {XRAY_CONFIG_PATH}'
+        move_output = execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=move_cmd,
+            timeout=30
+        )
+        app_logger.info(f"Файл конфигурации перемещён в {XRAY_CONFIG_PATH}. Вывод: {move_output}")
         sftp.close()
         ssh.close()
-        # Перезапускаем службу Xray
+
+        # Перезапускаем службу Xray для применения конфигурации
+        restart_cmd = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S systemctl restart xray'
         restart_output = execute_ssh_command(
             ip=server_obj.ip_address,
             username=DEFAULT_SERVER_USER,
             password=DEFAULT_SERVER_PASSWORD,
-            command="systemctl restart xray",
+            command=restart_cmd,
             timeout=30
         )
-        app_logger.info(f"Служба Xray перезапущена на сервере {server_obj.ip_address}. Вывод: {restart_output}")
+        app_logger.info(f"Служба Xray перезапущена. Вывод: {restart_output}")
         return True
     except Exception as ex:
         app_logger.error(f"Ошибка при настройке сервера {server_obj.location}: {ex}")
@@ -348,15 +309,14 @@ def generate_key(server_obj: Server) -> VPNKey | None:
     Генерирует новый VPN ключ для сервера.
 
     Алгоритм:
-      1. Генерируется уникальный UUID для нового клиента.
-      2. Обновляется конфигурация Xray на сервере удалённо через утилиту jq:
-         новый клиент добавляется в список inbound с протоколом "vless".
-      3. Перезапускается служба Xray.
-      4. На основе данных (новый UUID, ip_address и констант защиты) формируется VLESS‑ссылка.
-      5. Генерируется QR‑код для VLESS‑ссылки, и путь к файлу записывается.
-      6. Создаётся запись в модели VPNKey (peewee) и возвращается.
+      1. Генерация уникального UUID для клиента.
+      2. Обновление конфигурации Xray на сервере с помощью утилиты jq (добавление нового клиента в список).
+      3. Перезапуск службы Xray.
+      4. Формирование VLESS-ссылки с параметрами Xray Reality.
+      5. Генерация QR-кода для VLESS-ссылки.
+      6. Создание записи VPNKey в базе данных.
 
-    :param server_obj: объект Server с полями ip_address, location, id, keys и т.д.
+    :param server_obj: объект Server.
     :return: объект VPNKey с рабочей VLESS‑ссылкой и путем к QR‑коду, либо None при ошибке.
     """
     try:
@@ -364,9 +324,8 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         client_uuid = str(uuid.uuid4())
         app_logger.info(f"Сгенерирован новый UUID для клиента: {client_uuid}")
 
-        # Шаг 2. Обновление конфигурации Xray удалённо через утилиту jq.
-        # Предполагается, что на сервере установлен jq.
-        update_command = (
+        # Шаг 2. Обновление конфигурации Xray через jq
+        update_cmd = (
             f'jq \'.inbounds[0].settings.clients += [{{"id": "{client_uuid}", "flow": ""}}]\' {XRAY_CONFIG_PATH} '
             f'> {XRAY_CONFIG_PATH}.tmp && mv {XRAY_CONFIG_PATH}.tmp {XRAY_CONFIG_PATH}'
         )
@@ -374,12 +333,12 @@ def generate_key(server_obj: Server) -> VPNKey | None:
             ip=server_obj.ip_address,
             username=DEFAULT_SERVER_USER,
             password=DEFAULT_SERVER_PASSWORD,
-            command=update_command,
+            command=update_cmd,
             timeout=30
         )
-        app_logger.info(f"Конфигурация Xray обновлена удалённо. Вывод: {update_output}")
+        app_logger.info(f"Конфигурация Xray обновлена. Вывод: {update_output}")
 
-        # Шаг 3. Перезапуск службы Xray для применения изменений.
+        # Шаг 3. Перезапуск службы Xray
         restart_output = execute_ssh_command(
             ip=server_obj.ip_address,
             username=DEFAULT_SERVER_USER,
@@ -389,8 +348,7 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         )
         app_logger.info(f"Служба Xray перезапущена. Вывод: {restart_output}")
 
-        # Шаг 4. Формирование VLESS-ссылки напрямую, без повторного скачивания конфига.
-        # Ссылка формируется с использованием параметров защиты Xray Reality.
+        # Шаг 4. Формирование VLESS-ссылки
         vless_link = (
             f"vless://{client_uuid}@{server_obj.ip_address}:443?"
             f"encryption=none&security=reality&fp={XRAY_REALITY_FINGERPRINT}&"
@@ -398,7 +356,7 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         )
         app_logger.info(f"Сформирована VLESS ссылка: {vless_link}")
 
-        # Шаг 5. Генерация QR-кода для VLESS ссылки.
+        # Шаг 5. Генерация QR-кода
         key_number = len(server_obj.keys) + 1 if hasattr(server_obj, "keys") else 1
         qr_code_filename = f"vpn_key_{server_obj.id}_{key_number}.png"
         qr_code_path = os.path.join(QR_CODE_DIR, qr_code_filename)
@@ -424,7 +382,23 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         )
         app_logger.info(f"VPN ключ успешно создан: {vpn_key.key}")
         return vpn_key
-
     except Exception as ex:
         app_logger.error(f"Ошибка при генерации VPN ключа для сервера {server_obj.location}: {ex}")
         return None
+
+
+# Пример использования функций
+if __name__ == '__main__':
+    # Получаем сервер из базы данных (пример с id = 1)
+    server = Server.get(Server.id == 1)
+    if setup_server(server):
+        print("Сервер успешно настроен.")
+    else:
+        print("Ошибка при настройке сервера.")
+        exit(1)
+
+    vpn_key = generate_key(server)
+    if vpn_key:
+        print("VPN ключ создан успешно.")
+    else:
+        print("Ошибка при создании VPN ключа.")

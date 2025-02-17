@@ -38,7 +38,9 @@ QR_CODE_DIR = os.path.join(BASE_DIR, "qr_codes")  # Папка для хране
 if not os.path.exists(QR_CODE_DIR):
     os.makedirs(QR_CODE_DIR)
 
-XRAY_REALITY_SERVER_NAME = ""
-XRAY_REALITY_PUBLIC_KEY = ""
-XRAY_REALITY_SHORTID = ""
-XRAY_REALITY_FINGERPRINT = ""
+XRAY_REALITY_FINGERPRINT = "chrome"
+
+DOMAINS_LIST = ["www.telegram.com",
+                "www.google.com",
+                "www.microsoft.com",
+                "speed.cloudflare.com"]
