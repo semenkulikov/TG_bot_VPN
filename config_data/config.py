@@ -40,7 +40,8 @@ if not os.path.exists(QR_CODE_DIR):
 
 XRAY_REALITY_FINGERPRINT = "chrome"
 
-DOMAINS_LIST = ["www.telegram.com",
-                "www.google.com",
-                "www.microsoft.com",
-                "speed.cloudflare.com"]
+DOMAINS_LIST = [
+    "www.google.com",
+    "speed.cloudflare.com",
+    "www.microsoft.com",
+]

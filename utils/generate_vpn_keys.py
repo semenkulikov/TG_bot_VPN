@@ -78,7 +78,7 @@ def ensure_reality_params(config_template: dict, server_obj: Server) -> tuple:
     config = copy.deepcopy(config_template)
 
     # Обновляем параметры в секции realitySettings
-    reality = config["inbounds"][1]["streamSettings"]["realitySettings"]
+    reality = config["inbounds"][0]["streamSettings"]["realitySettings"]
     reality["dest"] = f"{domain}:443"
     reality["serverNames"] = [domain]
     reality["privateKey"] = keys["private"]
@@ -94,30 +94,14 @@ def ensure_reality_params(config_template: dict, server_obj: Server) -> tuple:
     return config, keys["public"]
 
 
-# Новый SECURE_XRAY_CONFIG, адаптированный под рабочий конфиг реальной Xray конфигурации
 SECURE_XRAY_CONFIG = {
     "log": {
         "loglevel": "debug"
     },
     "inbounds": [
         {
-            "tag": "dokodemo-in",
+            "listen": "0.0.0.0",
             "port": 443,
-            "protocol": "dokodemo-door",
-            "settings": {
-                "address": "127.0.0.1",
-                "port": 4431,
-                "network": "tcp"
-            },
-            "sniffing": {
-                "enabled": True,
-                "destOverride": ["tls"],
-                "routeOnly": True
-            }
-        },
-        {
-            "listen": "127.0.0.1",
-            "port": 4431,
             "protocol": "vless",
             "settings": {
                 "clients": [],
@@ -127,16 +111,16 @@ SECURE_XRAY_CONFIG = {
                 "network": "tcp",
                 "security": "reality",
                 "realitySettings": {
-                    "dest": f"",
+                    "dest": "",
                     "serverNames": [],
                     "privateKey": "",
-                    "shortIds": ""
+                    "shortIds": [],
+                    "publicKey": ""
                 }
             },
             "sniffing": {
                 "enabled": True,
-                "destOverride": ["http", "tls", "quic"],
-                "routeOnly": True
+                "destOverride": ["http", "tls", "quic"]
             }
         }
     ],
@@ -149,20 +133,7 @@ SECURE_XRAY_CONFIG = {
             "protocol": "blackhole",
             "tag": "block"
         }
-    ],
-    "routing": {
-        "rules": [
-            {
-                "inboundTag": ["dokodemo-in"],
-                "domain": [],
-                "outboundTag": "direct"
-            },
-            {
-                "inboundTag": ["dokodemo-in"],
-                "outboundTag": "block"
-            }
-        ]
-    }
+    ]
 }
 
 
@@ -274,6 +245,20 @@ def setup_server(server_obj: Server) -> bool:
         else:
             app_logger.info("Xray уже установлен. Сервер настроен")
             # return True
+
+        # Разрешаем 443 порт
+        allow_443_port_command = (
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S ufw allow 443/tcp && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S netstat -tulpn | grep ':443'"
+        )
+        port_output = execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=allow_443_port_command,
+            timeout=300
+        )
+        app_logger.info(f"Порт 443 разрешен. Проверка: {port_output}")
         # Подключаемся для загрузки конфигурации Xray
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
@@ -318,6 +303,28 @@ def setup_server(server_obj: Server) -> bool:
         sftp.close()
         ssh.close()
 
+        # Проверяем конфиг файл на валидность
+        test_config = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S xray run -test -confdir /usr/local/etc/xray/'
+        test_output = execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=test_config,
+            timeout=30
+        )
+        app_logger.info(f"Конфиг проверен. Вывод: {test_output}")
+
+        # Синхронизируем время на сервере
+        time_syn_cmd = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S timedatectl set-ntp true'
+        execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=time_syn_cmd,
+            timeout=30
+        )
+        app_logger.info(f"Время на сервере синхронизировано.")
+
         # Перезапускаем службу Xray для применения конфигурации
         restart_cmd = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S systemctl restart xray'
         restart_output = execute_ssh_command(
@@ -357,7 +364,8 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         # Шаг 2. Обновление конфигурации Xray через jq
         update_cmd = (
             f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S sh -c '
-            f'"jq \'.inbounds[1].settings.clients += [{{\\"id\\": \\"{client_uuid}\\", \\"flow\\": \\"\\"}}]\' {XRAY_CONFIG_PATH} > {XRAY_CONFIG_PATH}.tmp && '
+            f'"jq \'.inbounds[0].settings.clients += [{{\\"id\\": \\"{client_uuid}\\", '
+            f'\\"flow\\": \\"xtls-rprx-vision\\"}}]\' {XRAY_CONFIG_PATH} > {XRAY_CONFIG_PATH}.tmp && '
             f'mv {XRAY_CONFIG_PATH}.tmp {XRAY_CONFIG_PATH}"'
         )
         update_output = execute_ssh_command(
@@ -392,11 +400,11 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         try:
             config_json = json.loads(config_content)
             # Извлекаем данные из секции realitySettings во втором inbound (индекс 1)
-            reality_settings = config_json["inbounds"][1]["streamSettings"]["realitySettings"]
+            reality_settings = config_json["inbounds"][0]["streamSettings"]["realitySettings"]
             # Предполагаем, что в конфиге теперь есть оба параметра: publicKey и serverNames
             server_name = reality_settings.get("serverNames", [None])[0]
             public_key = server_obj.public_key
-            short_id = random.choice(reality_settings.get("shortIds", []))
+            short_id = random.choice(reality_settings["shortIds"])
             if not server_name or not public_key or not short_id:
                 raise ValueError("Недостаточно параметров Xray Reality в конфиге.")
         except Exception as e:
@@ -405,9 +413,14 @@ def generate_key(server_obj: Server) -> VPNKey | None:
 
         vless_link = (
             f"vless://{client_uuid}@{server_obj.ip_address}:443?"
-            f"type=tcp&encryption=none&security=reality&fp={XRAY_REALITY_FINGERPRINT}&"
-            f"sni={server_name}&pbk={public_key}&sid={short_id}"
-            f"#GuardVPN"
+            f"security=reality&"
+            f"encryption=none&"
+            f"flow=xtls-rprx-vision&"
+            f"type=tcp&"
+            f"fp={XRAY_REALITY_FINGERPRINT}&"
+            f"sni={server_name}&"
+            f"pbk={public_key}&"
+            f"sid={short_id}#GuardVPN"
         )
         app_logger.info(f"Сформирована VLESS ссылка: {vless_link}")
 
