@@ -1,3 +1,4 @@
+import base64
 import os
 import json
 import uuid
@@ -6,7 +7,7 @@ import paramiko
 import qrcode
 import secrets
 import random
-from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives import serialization
 from loader import app_logger
 from database.models import VPNKey, Server
@@ -20,32 +21,58 @@ from config_data.config import (
     DOMAINS_LIST,
 )
 
-
-def generate_ed25519_keys() -> str:
+def generate_x25519_keys_base64() -> dict:
     """
-    Генерирует пару ключей Ed25519 и возвращает в hex-формате.
+    Генерирует пару ключей X25519 и возвращает их в base64-формате,
+    что соответствует требованиям Xray Reality.
     """
-    private_key = ed25519.Ed25519PrivateKey.generate()
+    private_key = x25519.X25519PrivateKey.generate()
     public_key = private_key.public_key()
     private_bytes = private_key.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption()
-    ).hex()
+         encoding=serialization.Encoding.Raw,
+         format=serialization.PrivateFormat.Raw,
+         encryption_algorithm=serialization.NoEncryption()
+    )
     public_bytes = public_key.public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw
-    ).hex()
-    return {"private": private_bytes, "public": public_bytes}
+         encoding=serialization.Encoding.Raw,
+         format=serialization.PublicFormat.Raw
+    )
+    private_b64 = base64.b64encode(private_bytes).decode('utf-8')
+    public_b64 = base64.b64encode(public_bytes).decode('utf-8')
+    return {"private": private_b64, "public": public_b64}
 
 
-def ensure_reality_params(config_template: dict) -> dict:
+def remote_generate_xray_keys(server_obj: Server) -> dict:
+    cmd = "xray x25519"
+    output = execute_ssh_command(
+        ip=server_obj.ip_address,
+        username=DEFAULT_SERVER_USER,
+        password=DEFAULT_SERVER_PASSWORD,
+        command=cmd,
+        timeout=30
+    )
+    keys = {}
+    for line in output.splitlines():
+        if line.lower().startswith("private"):
+            keys["private"] = line.split(":", 1)[1].strip()
+        elif line.lower().startswith("public"):
+            keys["public"] = line.split(":", 1)[1].strip()
+    if "private" in keys and "public" in keys:
+        return keys
+    else:
+        app_logger.error("Не удалось сгенерировать ключи через 'xray x25519' на сервере.")
+        return None
+
+
+def ensure_reality_params(config_template: dict, server_obj: Server) -> tuple:
     # Выбираем случайный домен из DOMAINS_LIST
     domain = random.choice(DOMAINS_LIST)
-    # Генерируем ключи (приватный и публичный)
-    keys = generate_ed25519_keys()
-    # Генерируем список shortIds (например, 2 значения, по 16 символов в каждом)
-    short_ids = [secrets.token_hex(4) for _ in range(2)]
+    # Генерируем ключи (приватный и публичный) на сервере
+    keys = remote_generate_xray_keys(server_obj)
+    if not keys:
+        raise Exception("Удаленная генерация ключей не удалась")
+    # Генерируем список shortIds (например, 6 значений)
+    short_ids = [secrets.token_hex(4) for _ in range(6)]
 
     # Создаем глубокую копию шаблона, чтобы не изменять оригинал
     config = copy.deepcopy(config_template)
@@ -55,6 +82,7 @@ def ensure_reality_params(config_template: dict) -> dict:
     reality["dest"] = f"{domain}:443"
     reality["serverNames"] = [domain]
     reality["privateKey"] = keys["private"]
+    reality["publicKey"] = keys["public"]    # <-- Добавляем поле publicKey
     reality["shortIds"] = short_ids
 
     # Обновляем домены в routing.rules (если указаны)
@@ -62,7 +90,8 @@ def ensure_reality_params(config_template: dict) -> dict:
         if "domain" in rule:
             rule["domain"] = [domain]
 
-    return config
+    # Возвращаем обновленный конфиг и публичный ключ для формирования VLESS-ссылки
+    return config, keys["public"]
 
 
 # Новый SECURE_XRAY_CONFIG, адаптированный под рабочий конфиг реальной Xray конфигурации
@@ -91,11 +120,7 @@ SECURE_XRAY_CONFIG = {
             "port": 4431,
             "protocol": "vless",
             "settings": {
-                "clients": [
-                    {
-                        "id": ""  # Будет обновлено утилитой jq с новым UUID
-                    }
-                ],
+                "clients": [],
                 "decryption": "none"
             },
             "streamSettings": {
@@ -221,10 +246,9 @@ def setup_server(server_obj: Server) -> bool:
             username=DEFAULT_SERVER_USER,
             password=DEFAULT_SERVER_PASSWORD,
             command=update_jq_cmd,
-            timeout=300  # увеличен timeout, чтобы команды apt успели выполниться
+            timeout=300
         )
         app_logger.info(f"Системные компоненты обновлены, зависимости установлены.")
-        # Добавьте этот блок в функцию setup_server после установки пользователя (и после apt update/upgrade+jq), но до загрузки конфигурации через SFTP:
         xray_check_cmd = "which xray"
         xray_installed = execute_ssh_command(
             ip=server_obj.ip_address,
@@ -248,7 +272,8 @@ def setup_server(server_obj: Server) -> bool:
             )
             app_logger.info(f"Установка Xray выполнена успешно.")
         else:
-            app_logger.info("Xray уже установлен")
+            app_logger.info("Xray уже установлен. Сервер настроен")
+            # return True
         # Подключаемся для загрузки конфигурации Xray
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
@@ -264,7 +289,12 @@ def setup_server(server_obj: Server) -> bool:
         sftp = ssh.open_sftp()
 
         # заполняем конфигурацию данными
-        final_config = ensure_reality_params(SECURE_XRAY_CONFIG)
+        final_config, public_key = ensure_reality_params(SECURE_XRAY_CONFIG, server_obj)
+
+        # Сохраняем public key в модель сервера
+        server_obj.public_key = public_key
+        server_obj.save()
+
         # Сохраняем локально безопасный конфиг Xray
         local_config_path = os.path.join(tempfile.gettempdir(), f"secure_xray_config_{server_obj.id}.json")
         with open(local_config_path, "w") as f:
@@ -326,8 +356,9 @@ def generate_key(server_obj: Server) -> VPNKey | None:
 
         # Шаг 2. Обновление конфигурации Xray через jq
         update_cmd = (
-            f'jq \'.inbounds[0].settings.clients += [{{"id": "{client_uuid}", "flow": ""}}]\' {XRAY_CONFIG_PATH} '
-            f'> {XRAY_CONFIG_PATH}.tmp && mv {XRAY_CONFIG_PATH}.tmp {XRAY_CONFIG_PATH}'
+            f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S sh -c '
+            f'"jq \'.inbounds[1].settings.clients += [{{\\"id\\": \\"{client_uuid}\\", \\"flow\\": \\"\\"}}]\' {XRAY_CONFIG_PATH} > {XRAY_CONFIG_PATH}.tmp && '
+            f'mv {XRAY_CONFIG_PATH}.tmp {XRAY_CONFIG_PATH}"'
         )
         update_output = execute_ssh_command(
             ip=server_obj.ip_address,
@@ -339,23 +370,48 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         app_logger.info(f"Конфигурация Xray обновлена. Вывод: {update_output}")
 
         # Шаг 3. Перезапуск службы Xray
+        restart_cmd = f'echo {DEFAULT_SERVER_PASSWORD} | sudo -S systemctl restart xray'
         restart_output = execute_ssh_command(
             ip=server_obj.ip_address,
             username=DEFAULT_SERVER_USER,
             password=DEFAULT_SERVER_PASSWORD,
-            command="systemctl restart xray",
+            command=restart_cmd,
             timeout=30
         )
         app_logger.info(f"Служба Xray перезапущена. Вывод: {restart_output}")
 
         # Шаг 4. Формирование VLESS-ссылки
+        # Получаем данные из конфиг файла
+        config_content = execute_ssh_command(
+            ip=server_obj.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=f"cat {XRAY_CONFIG_PATH}",
+            timeout=30
+        )
+        try:
+            config_json = json.loads(config_content)
+            # Извлекаем данные из секции realitySettings во втором inbound (индекс 1)
+            reality_settings = config_json["inbounds"][1]["streamSettings"]["realitySettings"]
+            # Предполагаем, что в конфиге теперь есть оба параметра: publicKey и serverNames
+            server_name = reality_settings.get("serverNames", [None])[0]
+            public_key = server_obj.public_key
+            short_id = random.choice(reality_settings.get("shortIds", []))
+            if not server_name or not public_key or not short_id:
+                raise ValueError("Недостаточно параметров Xray Reality в конфиге.")
+        except Exception as e:
+            app_logger.error(f"Ошибка при парсинге конфигурационного файла: {e}")
+            return None
+
         vless_link = (
             f"vless://{client_uuid}@{server_obj.ip_address}:443?"
-            f"encryption=none&security=reality&fp={XRAY_REALITY_FINGERPRINT}&"
-            f"sni={XRAY_REALITY_SERVER_NAME}&pbk={XRAY_REALITY_PUBLIC_KEY}&sid={XRAY_REALITY_SHORTID}"
+            f"type=tcp&encryption=none&security=reality&fp={XRAY_REALITY_FINGERPRINT}&"
+            f"sni={server_name}&pbk={public_key}&sid={short_id}"
+            f"#GuardVPN"
         )
         app_logger.info(f"Сформирована VLESS ссылка: {vless_link}")
 
+        # TODO вот до сюда дошел с проверкой. Пока что не работает vless ссылка.
         # Шаг 5. Генерация QR-кода
         key_number = len(server_obj.keys) + 1 if hasattr(server_obj, "keys") else 1
         qr_code_filename = f"vpn_key_{server_obj.id}_{key_number}.png"

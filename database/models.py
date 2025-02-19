@@ -17,8 +17,8 @@ class Server(BaseModel):
     username = peewee.CharField()
     password = peewee.CharField()
     location = peewee.CharField()
-    port = peewee.IntegerField()
     ip_address = peewee.CharField(unique=True)
+    public_key = peewee.CharField(null=True, unique=True)
 
 
 class VPNKey(BaseModel):
