@@ -1,5 +1,7 @@
 import datetime
 import os.path
+import re
+
 from config_data.config import BASE_DIR
 import peewee
 
@@ -32,6 +34,13 @@ class VPNKey(BaseModel):
     is_valid = peewee.BooleanField(default=True)
     created_at = peewee.DateTimeField(default=datetime.datetime.now())
     updated_at = peewee.DateTimeField(default=datetime.datetime.now())
+
+    def extract_uuid(self) -> str | None:
+        """
+        Извлекает UUID из VLESS-ссылки ключа.
+        """
+        match = re.match(r'vless://([a-fA-F0-9-]{36})@', self.key)
+        return match.group(1) if match else None
 
 
 class User(BaseModel):

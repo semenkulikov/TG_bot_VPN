@@ -424,7 +424,7 @@ def generate_key(server_obj: Server) -> VPNKey | None:
         )
         app_logger.info(f"Сформирована VLESS ссылка: {vless_link}")
 
-        # TODO вот до сюда дошел с проверкой. Пока что не работает vless ссылка.
+
         # Шаг 5. Генерация QR-кода
         key_number = len(server_obj.keys) + 1 if hasattr(server_obj, "keys") else 1
         qr_code_filename = f"vpn_key_{server_obj.id}_{key_number}.png"
