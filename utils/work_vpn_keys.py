@@ -134,21 +134,37 @@ def get_inactive_keys(server: Server) -> list[VPNKey]:
 
 
 def cleanup_server(server: Server) -> bool:
-    """Полная очистка сервера от Xray и конфигов"""
+    """Полная очистка сервера от Xray и конфигов, с подробным логированием."""
     try:
-        full_cleanup_command = (
-            "curl -O https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh && "
-            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S bash install-release.sh --remove && "
-            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt-get purge xray -y && "
-            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S rm -rf /usr/local/etc/xray/ && "
-        )
-        delete_output = execute_ssh_command(
-            ip=server.ip_address,
-            username=DEFAULT_SERVER_USER,
-            password=DEFAULT_SERVER_PASSWORD,
-            command=full_cleanup_command,
-            timeout=30
-        )
+        cmds = [
+            # Остановка и отключение службы Xray
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S systemctl stop xray",
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S systemctl disable xray",
+            # Удаление Xray с помощью официального скрипта
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S bash -c 'curl -sL https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh | bash -s -- remove'",
+            # Очистка пакетов и конфигов
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt-get purge xray -y",
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S rm -rf /usr/local/etc/xray/",
+            # Восстановление фаервола: удаление правила для 443/tcp
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S ufw delete allow 443/tcp",
+            # Удаление созданного пользователя
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S pkill -9 -u {DEFAULT_SERVER_USER} || true",
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S userdel -rf {DEFAULT_SERVER_USER} || true",
+            # Очистка cron задач
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S crontab -u {DEFAULT_SERVER_USER} -r || true"
+        ]
+        full_output = ""
+        for cmd in cmds:
+            output = execute_ssh_command(
+                ip=server.ip_address,
+                username=DEFAULT_SERVER_USER,
+                password=DEFAULT_SERVER_PASSWORD,
+                command=cmd,
+                timeout=60
+            )
+            full_output += f"\nКоманда: {cmd}\nВывод: {output}"
+
+        # Удаляем запись о сервере из БД
         server.delete_instance()
 
         # Удаление связанных VPN ключей
@@ -158,7 +174,8 @@ def cleanup_server(server: Server) -> bool:
                 user.save()
             app_logger.info(f"VPN ключ {vpn_key.name} удален!")
             vpn_key.delete_instance()
-        app_logger.info(f"Сервер удален. Вывод: {delete_output}")
+
+        app_logger.info(f"Cleanup завершён. Общий вывод: {full_output}")
         return True
     except Exception as ex:
         app_logger.error(f"Server cleanup failed: {ex}")

@@ -166,6 +166,7 @@ def vpn_panel_handler(call):
     if "Delete" in call.data:
         server_id = call.data.split()[1]
         server_obj: Server = Server.get_by_id(server_id)
+        bot.send_message(call.message.chat.id, f"Начинаю полную очистку сервера...")
         if cleanup_server(server_obj):
             app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
             bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален вместе с привязанными ключами!")
@@ -179,7 +180,7 @@ def vpn_panel_handler(call):
         # Выдача всей информации по VPN ключу
         vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
         app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен"
+        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен \ Занят"
         users = ", ".join([user.full_name for user in vpn_obj.users]) if vpn_obj.users else "Нет пользователей"
         text = (
             f"🔑 Ключ: {vpn_obj.name}\n"
