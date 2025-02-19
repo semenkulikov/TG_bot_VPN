@@ -1,8 +1,9 @@
 import os
 
 import peewee
+import qrcode
 from telebot.types import Message
-from config_data.config import ALLOWED_USERS, DEFAULT_COMMANDS, ADMIN_COMMANDS
+from config_data.config import ALLOWED_USERS, DEFAULT_COMMANDS, ADMIN_COMMANDS, QR_CODE_DIR
 from database.models import User, Server, VPNKey
 from keyboards.inline.admin_buttons import (
     users_markup,
@@ -16,7 +17,7 @@ from loader import bot, app_logger
 from states.states import AdminPanel
 from utils.functions import valid_ip, convert_amnezia_xray_json_to_vless_str, get_all_commands_bot
 from utils.generate_vpn_keys import setup_server, generate_key
-from utils.work_vpn_keys import suspend_key, resume_key, revoke_key
+from utils.work_vpn_keys import suspend_key, resume_key, revoke_key, cleanup_server
 
 
 @bot.message_handler(commands=["admin_panel"])
@@ -165,33 +166,37 @@ def vpn_panel_handler(call):
     if "Delete" in call.data:
         server_id = call.data.split()[1]
         server_obj: Server = Server.get_by_id(server_id)
-        server_obj.delete_instance()
-        app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
-        bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален.")
-
-        # Удаление связанных VPN ключей
-        for vpn_key in VPNKey.select().where(VPNKey.server == server_id):
-            for user in vpn_key.users:
-                user.vpn_key = None
-                user.save()
-            app_logger.info(f"VPN ключ {vpn_key.name} удален!")
-            vpn_key.delete_instance()
-
-        bot.set_state(call.message.chat.id, AdminPanel.get_servers)
+        if cleanup_server(server_obj):
+            app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
+            bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален вместе с привязанными ключами!")
+            bot.set_state(call.message.chat.id, AdminPanel.get_servers)
+        else:
+            bot.send_message(call.message.chat.id, "Ошибка удаления сервера!")
+            bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
     if "VPN - " in call.data:
         # Выдача всей информации по VPN ключу
         vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
         app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-        bot.send_message(call.message.chat.id, f"Имя: {vpn_obj.name}\n"
-                                                f"Сервер: {Server.get_by_id(vpn_obj.server).location}\n"
-                                               f"VPN KEY: `{vpn_obj.key}`\n"
-                                               f"Свободен: {"Да" if vpn_obj.is_valid else "Нет"}\n"
-                                               f"Пользователи: {", ".join([user.full_name for user in vpn_obj.users])}\n"
-                                               f"Создан: {vpn_obj.created_at}",
-                         reply_markup=delete_vpn_markup(vpn_obj.id),
-                         parse_mode="Markdown")
+        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен"
+        users = ", ".join([user.full_name for user in vpn_obj.users]) if vpn_obj.users else "Нет пользователей"
+        text = (
+            f"🔑 Ключ: {vpn_obj.name}\n"
+            f"📍 Сервер: {vpn_obj.server.location}\n"
+            f"📡 Статус: {status}\n"
+            f"👤 Пользователи: {users}\n"
+            f"🕒 Создан: {vpn_obj.created_at.strftime('%d.%m.%Y %H:%M')}"
+        )
+
+        # Отправляем QR-код если есть
+        if os.path.exists(vpn_obj.qr_code):
+            with open(vpn_obj.qr_code, 'rb') as qr_file:
+                bot.send_photo(call.message.chat.id, qr_file, caption=text,
+                               reply_markup=key_actions_markup(vpn_obj.id))
+        else:
+            bot.send_message(call.message.chat.id, text,
+                             reply_markup=key_actions_markup(vpn_obj.id))
         bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
     elif "Cancel" in call.data:
         # Возврат в меню серверов
@@ -231,6 +236,9 @@ def vpn_panel_handler(call):
             app_logger.info(f"Администратор {call.message.from_user.full_name} запросил отзыв "
                             f"VPN ключа {vpn_key.name}")
             if revoke_key(vpn_key):
+                for user in User.select().where(User.vpn_key == vpn_key):
+                    user.vpn_key = None
+                    user.save()
                 bot.send_message(call.message.chat.id, f"🗑 Ключ {vpn_key.name} отозван")
             else:
                 bot.send_message(call.message.chat.id, "❌ Ошибка отзыва ключа!")
@@ -244,49 +252,10 @@ def vpn_panel_handler(call):
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся в админку")
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         return
-    if "Del - " in call.data:
-        vpn_key_id = int(call.data.split(" - ")[1])
-        vpn_obj: VPNKey = VPNKey.get_by_id(vpn_key_id)
-        bot.send_message(call.message.chat.id, f"VPN ключ {vpn_obj.name} удален.")
-        app_logger.info(f"Администратор удалил VPN ключ {vpn_obj.name}")
-        vpn_obj.delete_instance()
-
-        # Обнуление полей vpn_key в тех моделях пользователей, у которых был этот ключ
-        for user in User.select().where(User.vpn_key == vpn_key_id):
-            user.vpn_key = None
-            user.save()
-
-        bot.set_state(call.message.chat.id, AdminPanel.get_servers)
     else:
         # Скорее всего, пользователь выбрал другой VPN ключ
         bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
         vpn_panel_handler(call)
-
-
-@bot.callback_query_handler(func=lambda call: "VPN - " in call.data, state=AdminPanel.get_vpn_keys)
-def show_vpn_key_info(call):
-    """ Показ детальной информации о ключе с управлением """
-    vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
-    app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-    status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен"
-    users = ", ".join([user.full_name for user in vpn_obj.users]) if vpn_obj.users else "Нет пользователей"
-
-    text = (
-        f"🔑 Ключ: {vpn_obj.name}\n"
-        f"📍 Сервер: {vpn_obj.server.location}\n"
-        f"📡 Статус: {status}\n"
-        f"👤 Пользователи: {users}\n"
-        f"🕒 Создан: {vpn_obj.created_at.strftime('%d.%m.%Y %H:%M')}"
-    )
-
-    # Отправляем QR-код если есть
-    if os.path.exists(vpn_obj.qr_code):
-        with open(vpn_obj.qr_code, 'rb') as qr_file:
-            bot.send_photo(call.message.chat.id, qr_file, caption=text,
-                           reply_markup=key_actions_markup(vpn_obj.id))
-    else:
-        bot.send_message(call.message.chat.id, text,
-                         reply_markup=key_actions_markup(vpn_obj.id))
 
 
 @bot.message_handler(commands=["message_sending"])
@@ -383,8 +352,7 @@ def save_vpn_handler(call):
                                                "Location (США например)\n"
                                                "Username (root к примеру)\n"
                                                "Password (пароль от root)\n"
-                                               "IP address\n"
-                                               "Порт работы ssh")
+                                               "IP address")
         bot.set_state(call.message.chat.id, AdminPanel.add_server)
         return
 
@@ -392,10 +360,24 @@ def save_vpn_handler(call):
     server_obj: Server = Server.get_by_id(server_id)
     with bot.retrieve_data(call.from_user.id, call.from_user.id) as data:
         try:
+            key_number = len(server_obj.keys) + 1 if hasattr(server_obj, "keys") else 1
+            qr_code_filename = f"vpn_key_{server_obj.id}_{key_number}.png"
+            qr_code_path = os.path.join(QR_CODE_DIR, qr_code_filename)
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_H,
+                box_size=10,
+                border=4
+            )
+            qr.add_data(data["vpn_key_key"])
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            img.save(qr_code_path)
+            app_logger.info(f"QR-код сгенерирован и сохранён по пути: {qr_code_path}")
             vpn_key = VPNKey.create(
                 name=data["vpn_key_name"],
                 key=data["vpn_key_key"],
-                qr_code=data["vpn_key_key"] + ":qr_code",  # Заглушка, потом будут нормальные пути
+                qr_code=qr_code_path,
                 server=server_obj,
             )
         except peewee.IntegrityError:

@@ -40,6 +40,7 @@ def get_vpn_markup(server_id):
     actions = InlineKeyboardMarkup(row_width=2)
     for vpn_key_obj in cur_server.keys:
         actions.add(InlineKeyboardButton(text=f"{vpn_key_obj.name}", callback_data=f"VPN - {str(vpn_key_obj.id)}"))
+    actions.add(InlineKeyboardButton(text=f"Сгенерировать новый ключ", callback_data=f"Generate {cur_server.id}"))
     actions.add(InlineKeyboardButton(text=f"Удалить сервер", callback_data=f"Delete {cur_server.id}"),
                 InlineKeyboardButton(text=f"Назад", callback_data="Cancel"))  # Возврат в меню серверов
     return actions

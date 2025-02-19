@@ -30,7 +30,7 @@ class VPNKey(BaseModel):
                                      on_update="cascade")
     name = peewee.CharField()
     key = peewee.CharField(unique=True)
-    qr_code = peewee.CharField(unique=True)
+    qr_code = peewee.CharField()
     is_valid = peewee.BooleanField(default=True)
     created_at = peewee.DateTimeField(default=datetime.datetime.now())
     updated_at = peewee.DateTimeField(default=datetime.datetime.now())

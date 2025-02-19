@@ -1,3 +1,5 @@
+import os
+
 from config_data.config import DEFAULT_SERVER_PASSWORD, XRAY_CONFIG_PATH, DEFAULT_SERVER_USER
 from database.models import VPNKey, Server
 from loader import app_logger
@@ -105,8 +107,13 @@ def revoke_key(vpn_key: VPNKey) -> bool:
         if not suspend_key(vpn_key):
             return False
 
+        # Удаление QR-кода, если он существует
+        if os.path.exists(vpn_key.qr_code):
+            os.remove(vpn_key.qr_code)
+
         # Удаление из базы данных
         vpn_key.delete_instance()
+
         app_logger.info(f"Ключ {vpn_key.id} полностью отозван.")
         return True
     except Exception as ex:
@@ -124,3 +131,35 @@ def get_inactive_keys(server: Server) -> list[VPNKey]:
     Возвращает список неактивных ключей для указанного сервера.
     """
     return list(server.keys.where(VPNKey.is_valid == False))
+
+
+def cleanup_server(server: Server) -> bool:
+    """Полная очистка сервера от Xray и конфигов"""
+    try:
+        full_cleanup_command = (
+            "curl -O https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S bash install-release.sh --remove && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S apt-get purge xray -y && "
+            f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S rm -rf /usr/local/etc/xray/ && "
+        )
+        delete_output = execute_ssh_command(
+            ip=server.ip_address,
+            username=DEFAULT_SERVER_USER,
+            password=DEFAULT_SERVER_PASSWORD,
+            command=full_cleanup_command,
+            timeout=30
+        )
+        server.delete_instance()
+
+        # Удаление связанных VPN ключей
+        for vpn_key in VPNKey.select().where(VPNKey.server == server):
+            for user in vpn_key.users:
+                user.vpn_key = None
+                user.save()
+            app_logger.info(f"VPN ключ {vpn_key.name} удален!")
+            vpn_key.delete_instance()
+        app_logger.info(f"Сервер удален. Вывод: {delete_output}")
+        return True
+    except Exception as ex:
+        app_logger.error(f"Server cleanup failed: {ex}")
+        return False
