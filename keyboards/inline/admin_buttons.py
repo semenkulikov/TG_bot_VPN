@@ -50,3 +50,21 @@ def delete_vpn_markup(vpn_obj_id: int):
     actions.add(InlineKeyboardButton(text=f"Удалить", callback_data=f"Del - {vpn_obj_id}"),
                 InlineKeyboardButton(text=f"Выйти", callback_data="Cancel"))
     return actions
+
+
+def key_actions_markup(key_id: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для управления ключом:
+    - Приостановить/возобновить
+    - Отозвать
+    - Назад
+    """
+    markup = InlineKeyboardMarkup(row_width=2)
+
+    markup.add(
+        InlineKeyboardButton("⏸ Приостановить", callback_data=f"action_suspend_{key_id}"),
+        InlineKeyboardButton("▶️ Возобновить", callback_data=f"action_resume_{key_id}"),
+        InlineKeyboardButton("🗑 Отозвать", callback_data=f"action_revoke_{key_id}"),
+        InlineKeyboardButton("🔙 Назад", callback_data="Cancel")
+    )
+    return markup

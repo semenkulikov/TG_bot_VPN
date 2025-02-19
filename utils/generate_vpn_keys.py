@@ -244,7 +244,7 @@ def setup_server(server_obj: Server) -> bool:
             app_logger.info(f"Установка Xray выполнена успешно.")
         else:
             app_logger.info("Xray уже установлен. Сервер настроен")
-            # return True
+            return True
 
         # Разрешаем 443 порт
         allow_443_port_command = (
@@ -454,20 +454,3 @@ def generate_key(server_obj: Server) -> VPNKey | None:
     except Exception as ex:
         app_logger.error(f"Ошибка при генерации VPN ключа для сервера {server_obj.location}: {ex}")
         return None
-
-
-# Пример использования функций
-if __name__ == '__main__':
-    # Получаем сервер из базы данных (пример с id = 1)
-    server = Server.get(Server.id == 1)
-    if setup_server(server):
-        print("Сервер успешно настроен.")
-    else:
-        print("Ошибка при настройке сервера.")
-        exit(1)
-
-    vpn_key = generate_key(server)
-    if vpn_key:
-        print("VPN ключ создан успешно.")
-    else:
-        print("Ошибка при создании VPN ключа.")
