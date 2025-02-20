@@ -63,11 +63,13 @@ def get_user(call):
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся обратно к выбору опций.")
     else:
         user_obj: User = User.get_by_id(call.data)
-        vpn_key: VPNKey = user_obj.vpn_key
+        try:
+            vpn_key: VPNKey = user_obj.vpn_key
+            vpn_key = vpn_key.name
+        except Exception:
+            vpn_key = "отсутствует"
         app_logger.info(f"Администратор {call.from_user.full_name} запросил "
                         f"информацию о пользователе {user_obj.full_name}")
-        if vpn_key is not None:
-            vpn_key = vpn_key.name
         bot.send_message(call.message.chat.id, f"Имя: {user_obj.full_name}\n"
                                                f"Телеграм: @{user_obj.username}\n"
                                                f"Подписан на канал: {user_obj.is_subscribed}\n"

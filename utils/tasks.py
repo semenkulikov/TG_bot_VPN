@@ -21,6 +21,7 @@ def check_and_revoke_keys():
             # Если пользователь не подписан, отправляем уведомление
             if not is_subscribed(CHANNEL_ID, user.user_id):
                 user.is_subscribed = False
+                user.vpn_key = None
                 user.save()
                 try:
                     bot.send_message(user.user_id,
