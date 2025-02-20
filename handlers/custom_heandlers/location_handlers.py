@@ -1,8 +1,11 @@
 from telebot.types import Message
+
+from config_data.config import CHANNEL_ID
 from database.models import User, Server, VPNKey
 from loader import bot, app_logger
 from keyboards.inline.servers import get_locations_markup
 from states.states import GetVPNKey
+from utils.functions import is_subscribed
 from utils.generate_vpn_keys import generate_key
 
 
@@ -12,11 +15,14 @@ def location_handler(message: Message):
     app_logger.info(f"Пользователь {message.from_user.full_name} вызвал команду /location")
     cur_user = User.get(User.user_id == message.from_user.id)
 
-    if cur_user.is_subscribed:
+    if is_subscribed(CHANNEL_ID, message.from_user.id):
+        cur_user.is_subscribed = True
         bot.send_message(message.chat.id, "Выберите сервер подключения:", reply_markup=get_locations_markup())
         bot.set_state(message.chat.id, GetVPNKey.get_server)
     else:
         bot.send_message(message.chat.id, "Вы не подписаны на канал!")
+        cur_user.is_subscribed = False
+    cur_user.save()
 
 
 @bot.callback_query_handler(func=None, state=GetVPNKey.get_server)

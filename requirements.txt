@@ -6,3 +6,4 @@ paramiko
 pexpect
 cryptography
 qrcode[pil]
+APScheduler
