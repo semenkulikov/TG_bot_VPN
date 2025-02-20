@@ -180,7 +180,7 @@ def vpn_panel_handler(call):
         # Выдача всей информации по VPN ключу
         vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
         app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен \ Занят"
+        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен / Занят"
         users = ", ".join([user.full_name for user in vpn_obj.users]) if vpn_obj.users else "Нет пользователей"
         text = (
             f"🔑 Ключ: {vpn_obj.name}\n"

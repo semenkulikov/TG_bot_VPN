@@ -20,7 +20,8 @@ def location_handler(message: Message):
         bot.send_message(message.chat.id, "Выберите сервер подключения:", reply_markup=get_locations_markup())
         bot.set_state(message.chat.id, GetVPNKey.get_server)
     else:
-        bot.send_message(message.chat.id, "Вы не подписаны на канал!")
+        bot.send_message(message.chat.id, f"Вы не подписаны на [канал](https://t.me/{CHANNEL_ID})!",
+                         parse_mode="Markdown")
         cur_user.is_subscribed = False
     cur_user.save()
 

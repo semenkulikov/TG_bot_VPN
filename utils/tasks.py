@@ -12,12 +12,16 @@ def check_and_revoke_keys():
     отправляет ему уведомление и отзывает ключ.
     """
     # Получаем активные ключи
+    app_logger.info("Проверка пользователей...")
+
     active_keys = VPNKey.select().where(VPNKey.is_valid == True)
     for vpn_key in active_keys:
         revoke_this = False
         for user in vpn_key.users:
             # Если пользователь не подписан, отправляем уведомление
             if not is_subscribed(CHANNEL_ID, user.user_id):
+                user.is_subscribed = False
+                user.save()
                 try:
                     bot.send_message(user.user_id,
                         "Ваш VPN ключ отозван, так как вы отписались от канала.")
