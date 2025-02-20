@@ -14,7 +14,7 @@ def check_and_revoke_keys():
     # Получаем активные ключи
     app_logger.info("Проверка пользователей...")
 
-    active_keys = VPNKey.select().where(VPNKey.is_valid == True)
+    active_keys = VPNKey.select().where(VPNKey.is_valid == False)
     for vpn_key in active_keys:
         revoke_this = False
         for user in vpn_key.users:

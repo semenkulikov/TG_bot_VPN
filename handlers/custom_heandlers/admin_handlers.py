@@ -63,7 +63,7 @@ def get_user(call):
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся обратно к выбору опций.")
     else:
         user_obj: User = User.get_by_id(call.data)
-        vpn_key: VPNKey = VPNKey.get_or_none(user_obj.vpn_key)
+        vpn_key: VPNKey = user_obj.vpn_key
         app_logger.info(f"Администратор {call.from_user.full_name} запросил "
                         f"информацию о пользователе {user_obj.full_name}")
         if vpn_key is not None:
