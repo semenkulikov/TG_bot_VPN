@@ -25,11 +25,11 @@ def admin_panel(message: Message):
     """ Хендлер для админ панели """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} зашел в админ панель.")
-        bot.send_message(message.from_user.id, "Вы вошли в админ панель. Выберите кнопку ниже",
+        bot.send_message(message.from_user.id, "🔧 Добро пожаловать в админ панель!\n\nВыберите нужную опцию ниже 👇",
                          reply_markup=admin_markup())
         bot.set_state(message.from_user.id, AdminPanel.get_option)
     else:
-        bot.send_message(message.from_user.id, "У вас недостаточно прав")
+        bot.send_message(message.from_user.id, "❌ У вас недостаточно прав")
         app_logger.warning(f"Пользователь {message.from_user.full_name} пытался войти в админ панель")
 
 
@@ -39,16 +39,16 @@ def admin_panel_handler(call):
     bot.answer_callback_query(callback_query_id=call.id)
 
     if call.data == "Exit":
-        bot.send_message(call.message.chat.id, "Вы успешно вышли из админ панели.")
+        bot.send_message(call.message.chat.id, "🚪 Вы успешно вышли из админ панели. До встречи!")
         bot.set_state(call.message.chat.id, None)
         app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
     elif call.data == "users":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в юзер панель.")
-        bot.send_message(call.message.chat.id, "Все пользователи базы данных:", reply_markup=users_markup())
+        bot.send_message(call.message.chat.id, "👥 Список всех пользователей базы данных:", reply_markup=users_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_users)
     elif call.data == "servers":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в панель управления серверами.")
-        bot.send_message(call.message.chat.id, "Панель управления серверами:", reply_markup=get_servers_markup())
+        bot.send_message(call.message.chat.id, "🖥 Панель управления серверами:", reply_markup=get_servers_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
 
 
@@ -70,10 +70,12 @@ def get_user(call):
             vpn_key = "отсутствует"
         app_logger.info(f"Администратор {call.from_user.full_name} запросил "
                         f"информацию о пользователе {user_obj.full_name}")
-        bot.send_message(call.message.chat.id, f"Имя: {user_obj.full_name}\n"
-                                               f"Телеграм: @{user_obj.username}\n"
-                                               f"Подписан на канал: {user_obj.is_subscribed}\n"
-                                               f"VPN ключ: {vpn_key}")
+        bot.send_message(call.message.chat.id,
+                         f"👤 Имя: {user_obj.full_name}\n"
+                         f"📱 Телеграм: @{user_obj.username}\n"
+                         f"📢 Подписан на канал: {user_obj.is_subscribed}\n"
+                         f"🔑 VPN ключ: {vpn_key}"
+                         )
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_servers)
@@ -82,11 +84,13 @@ def server_panel_handler(call):
     bot.answer_callback_query(callback_query_id=call.id)
 
     if call.data == "Add":
-        bot.send_message(call.message.chat.id, "Введите данные сервера в таком формате:\n"
-                                               "Location (США например)\n"
-                                               "Username (root к примеру)\n"
-                                               "Password (пароль от root)\n"
-                                               "IP address")
+        bot.send_message(call.message.chat.id,
+                         "📄 Введите данные сервера в следующем формате:\n"
+                         "🏙 Location (например, США)\n"
+                         "👤 Username (например, root)\n"
+                         "🔒 Password (пароль от root)\n"
+                         "🌐 IP address"
+                         )
         bot.set_state(call.message.chat.id, AdminPanel.add_server)
         return
 
@@ -99,10 +103,10 @@ def server_panel_handler(call):
     status = "✅ Настроен" if server_obj.public_key else "❌ Требует настройки"
 
     bot.send_message(call.message.chat.id,
-                     f"Имя сервера: {server_obj.location}\n"
-                     f"Статус: {status}\n"
-                     f"IP адрес: {server_obj.ip_address}\n"
-                     f"Ключей: {server_obj.keys.count()}",
+                     f"🖥 Сервер: {server_obj.location}\n"
+                     f"🔰 Статус: {status}\n"
+                     f"🌐 IP адрес: {server_obj.ip_address}\n"
+                     f"🔑 Количество ключей: {server_obj.keys.count()}",
                      reply_markup=get_vpn_markup(server_id))
     bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
 
@@ -113,9 +117,9 @@ def add_server(message: Message):
     try:
         server_data = [item.strip() for item in message.text.split("\n")]
         if len(server_data) != 4:  # Убрали порт X-UI
-            raise ValueError("Неверное количество полей!")
+            raise ValueError("❌ Неверное количество полей!")
         elif valid_ip(server_data[3]) is False:
-            raise ValueError("Неверный формат IP адреса!")
+            raise ValueError("❌ Неверный формат IP адреса!")
 
         # Создаем сервер и настраиваем
         server = Server.create(
@@ -128,9 +132,9 @@ def add_server(message: Message):
         bot.send_message(message.from_user.id, "Начинаю настройку сервера, подождите...")
         # Автоматическая настройка сервера
         if setup_server(server):
-            bot.send_message(message.from_user.id, "Сервер успешно настроен!")
+            bot.send_message(message.from_user.id, "✅ Сервер успешно настроен!")
         else:
-            bot.send_message(message.from_user.id, "Ошибка настройки сервера!")
+            bot.send_message(message.from_user.id, "❌ Ошибка настройки сервера!")
             server.delete_instance()
             return
 
@@ -138,7 +142,7 @@ def add_server(message: Message):
         app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server.location}")
 
     except Exception as ex:
-        bot.send_message(message.from_user.id, f"Некорректные данные!\n{ex}")
+        bot.send_message(message.from_user.id, f"❌ Некорректные данные!\n{ex}")
         app_logger.error(f"Ошибка при добавлении сервера {ex}")
 
 
@@ -153,10 +157,10 @@ def vpn_panel_handler(call):
         server = Server.get_by_id(server_id)
         app_logger.info(f"Администратор {call.from_user.full_name} запросил генерацию"
                         f" VPN ключа для сервера {server.location}")
-        bot.send_message(call.message.chat.id, f"Генерирую ключ...")
+        bot.send_message(call.message.chat.id, f"⌛ Пожалуйста, подождите... Идет генерация нового VPN ключа...")
         key = generate_key(server)
         if key:
-            bot.send_message(call.message.chat.id, f"✅ Ключ {key.name} создан!")
+            bot.send_message(call.message.chat.id, f"✅ Отлично! VPN ключ «{key.name}» успешно создан!")
             app_logger.info(f"Администратор {call.from_user.full_name} успешно создал "
                             f"VPN ключ {key.name} для сервера {server.location}")
         else:
@@ -168,13 +172,14 @@ def vpn_panel_handler(call):
     if "Delete" in call.data:
         server_id = call.data.split()[1]
         server_obj: Server = Server.get_by_id(server_id)
-        bot.send_message(call.message.chat.id, f"Начинаю полную очистку сервера...")
+        bot.send_message(call.message.chat.id, f"🗑 Начинается полная очистка сервера. Пожалуйста, подождите...")
         if cleanup_server(server_obj):
             app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
-            bot.send_message(call.message.chat.id, f"Сервер {server_obj.location} удален вместе с привязанными ключами!")
+            bot.send_message(call.message.chat.id, f"✅ Сервер {server_obj.location} успешно удалён вместе "
+                                                   f"с привязанными VPN ключами!")
             bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         else:
-            bot.send_message(call.message.chat.id, "Ошибка удаления сервера!")
+            bot.send_message(call.message.chat.id, "❌ Ошибка удаления сервера!")
             bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
@@ -266,10 +271,10 @@ def message_sending_handler(message: Message):
     """ Хендлер рассылки сообщений юзерам """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /message_sending.")
-        bot.send_message(message.from_user.id, "Введите сообщение для рассылки")
+        bot.send_message(message.from_user.id, "✉️ Введите текст сообщения для рассылки пользователям:")
         bot.set_state(message.from_user.id, AdminPanel.send_message)
     else:
-        bot.send_message(message.from_user.id, "У вас недостаточно прав")
+        bot.send_message(message.from_user.id, "❌ У вас недостаточно прав для выполнения этой команды!")
         app_logger.warning(f"Попытка доступа к /message_sending без прав администратора {message.from_user.full_name}")
 
 
@@ -294,7 +299,7 @@ def send_message_to_users_handler(message: Message):
     for user_obj in User.select():
         if int(user_obj.user_id) not in ALLOWED_USERS:
             bot.send_message(user_obj.user_id, message.text)
-    bot.send_message(message.chat.id, "Рассылка сообщений завершена!")
+    bot.send_message(message.chat.id, "✅ Рассылка сообщений завершена!")
     bot.set_state(message.from_user.id, None)
 
 
@@ -303,7 +308,7 @@ def add_vpn_key_handler(message: Message):
     """ Хендлер для ручного добавления VPN ключа """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /add_vpn_key.")
-        bot.send_message(message.from_user.id, "Введите название VPN ключа")
+        bot.send_message(message.from_user.id, "🔑 Введите название нового VPN ключа:")
         bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_name)
     else:
         bot.send_message(message.from_user.id, "У вас недостаточно прав!")
@@ -315,7 +320,8 @@ def add_vpn_key_name_handler(message: Message):
     app_logger.info(f"Администратор {message.from_user.full_name} ввел название VPN ключа: {message.text}")
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_name"] = message.text
-    bot.send_message(message.from_user.id, "Введите VPN KEY в формате json либо как vless://")
+    bot.send_message(message.from_user.id, "🔑 Введите VPN KEY в формате JSON или "
+                                           "VLESS-ссылку (например, vless://...) :")
     bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_key)
 
 

@@ -17,10 +17,11 @@ def location_handler(message: Message):
 
     if is_subscribed(CHANNEL_ID, message.from_user.id):
         cur_user.is_subscribed = True
-        bot.send_message(message.chat.id, "Выберите сервер подключения:", reply_markup=get_locations_markup())
+        bot.send_message(message.chat.id, "🌍 Пожалуйста, выберите сервер для подключения:", reply_markup=get_locations_markup())
         bot.set_state(message.chat.id, GetVPNKey.get_server)
     else:
-        bot.send_message(message.chat.id, f"Вы не подписаны на [канал](https://t.me/{CHANNEL_ID})!",
+        bot.send_message(message.chat.id, f"🚫 Вы не подписаны на [наш канал](https://t.me/{CHANNEL_ID[1:]})!\n"
+                                          f"Подпишитесь, чтобы получить доступ ко всему функционалу.",
                          parse_mode="Markdown")
         cur_user.is_subscribed = False
     cur_user.save()
@@ -60,19 +61,24 @@ def get_server_handler(call):
             vpn_key_obj.save()
             app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал ключ {vpn_key_obj.name}")
             with open(vpn_key_obj.qr_code, "rb") as qr_code:
-                bot.send_photo(call.message.chat.id, qr_code,
-                               f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                               f"Имя ключа: {vpn_key_obj.name}\n"
-                               f"Сервер: {cur_server.location}\n"
-                               f"URL для подключения:\n\n`{vpn_key_obj.key}`",
-                               parse_mode="Markdown")
+                bot.send_photo(
+                    call.message.chat.id,
+                    qr_code,
+                    caption=(
+                        "🔒 Мы не храним информацию о ваших подключениях!\n\n"
+                        f"🔑 Имя ключа: *{vpn_key_obj.name}*\n"
+                        f"🌍 Сервер: *{cur_server.location}*\n"
+                        f"🔗 URL для подключения:\n\n`{vpn_key_obj.key}`"
+                    ),
+                    parse_mode="Markdown"
+                )
             bot.set_state(call.message.chat.id, None)
             return
 
     # Если нет свободных ключей, генерируем новый
     app_logger.warning(f"Внимание! Для сервера {cur_server.location} не нашлось свободных VPN ключей! "
                        f"Генерирую новый...")
-    bot.send_message(call.message.chat.id, "Подождите, генерируется новый ключ...")
+    bot.send_message(call.message.chat.id, "⌛ Пожалуйста, подождите... Идет генерация нового VPN ключа...")
 
     new_key: VPNKey = generate_key(cur_server)
     app_logger.info(f"Сгенерирован новый ключ {new_key.name}!")
@@ -90,10 +96,15 @@ def get_server_handler(call):
     new_key.save()
     app_logger.info(f"Пользователь {cur_user.full_name} зарезервировал новый ключ {new_key.name}")
     with open(new_key.qr_code, "rb") as qr_code:
-        bot.send_photo(call.message.chat.id, qr_code,
-                         f"Мы не собираем и не храним информацию о подключениях к серверам!\n\n"
-                         f"Имя ключа: {new_key.name}\n"
-                         f"Сервер: {cur_server.location}\n"
-                         f"URL для подключения:\n\n`{new_key.key}`",
-                       parse_mode="Markdown")
+        bot.send_photo(
+            call.message.chat.id,
+            qr_code,
+            caption=(
+                "🔒 Мы не храним информацию о ваших подключениях!\n\n"
+                f"🔑 Имя ключа: *{new_key.name}*\n"
+                f"🌍 Сервер: *{cur_server.location}*\n"
+                f"🔗 URL для подключения:\n\n`{new_key.key}`"
+            ),
+            parse_mode="Markdown"
+        )
     bot.set_state(call.message.chat.id, None)
