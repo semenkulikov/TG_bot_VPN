@@ -24,6 +24,7 @@ PATH_TO_PYTHON = os.path.normpath(os.path.join(BASE_DIR, ".venv/bin/python.exe")
 ADMIN_ID = os.getenv('ADMIN_ID')
 ALLOWED_USERS = [int(ADMIN_ID),
                  418333240,  # владелец канала
+                 610640621,  # Второй админ
                  ]
 
 CHANNEL_ID = os.getenv('CHANNEL_ID')
