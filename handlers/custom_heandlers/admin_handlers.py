@@ -357,11 +357,13 @@ def save_vpn_handler(call):
     bot.answer_callback_query(callback_query_id=call.id)
 
     if call.data == "Add":
-        bot.send_message(call.message.chat.id, "Введите данные сервера в таком формате:\n"
-                                               "Location (США например)\n"
-                                               "Username (root к примеру)\n"
-                                               "Password (пароль от root)\n"
-                                               "IP address")
+        bot.send_message(call.message.chat.id,
+                         "📄 Введите данные сервера в следующем формате:\n"
+                         "🏙 Location (например, США)\n"
+                         "👤 Username (например, root)\n"
+                         "🔒 Password (пароль от root)\n"
+                         "🌐 IP address"
+                         )
         bot.set_state(call.message.chat.id, AdminPanel.add_server)
         return
 

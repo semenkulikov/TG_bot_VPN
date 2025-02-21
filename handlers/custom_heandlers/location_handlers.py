@@ -7,6 +7,7 @@ from keyboards.inline.servers import get_locations_markup, get_instruction_marku
 from states.states import GetVPNKey
 from utils.functions import is_subscribed
 from utils.generate_vpn_keys import generate_key
+from utils.work_vpn_keys import revoke_key
 
 
 @bot.message_handler(commands=["location"])
@@ -86,9 +87,7 @@ def get_server_handler(call):
 
     if cur_user.vpn_key is not None:
         users_vpn = VPNKey.get_by_id(cur_user.vpn_key)
-        users_vpn.is_valid = True
-        users_vpn.save()
-        app_logger.info(f"VPN ключ {users_vpn.name} теперь свободен.")
+        revoke_key(users_vpn)
 
     cur_user.vpn_key = new_key
     cur_user.save()
