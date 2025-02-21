@@ -7,5 +7,5 @@ def get_locations_markup():
     actions = InlineKeyboardMarkup(row_width=1)
     servers_obj = Server.select()
     for server in servers_obj:
-        actions.add(InlineKeyboardButton(text=f"{server.location}", callback_data=str(server.id)))
+        actions.add(InlineKeyboardButton(text=f"🌍 {server.location}", callback_data=str(server.id)))
     return actions
