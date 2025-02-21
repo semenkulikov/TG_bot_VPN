@@ -33,11 +33,12 @@ def bot_start(message: Message):
         commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]
         if message.from_user.id in ALLOWED_USERS:
             commands.extend([f"/{command} - {description}" for command, description in ADMIN_COMMANDS])
-            bot.send_message(message.from_user.id, f"Здравствуйте, {message.from_user.full_name}! "
-                                                   f"Вы в списке администраторов бота. "
-                                                   f"Вам доступны следующие команды:\n"
-                                                   f"{'\n'.join(commands)}",
-                             reply_markup=handlers_reply())
+            bot.send_message(
+                message.from_user.id,
+                f"Здравствуйте, {message.from_user.full_name}! 👋\n"
+                f"Вы вошли как администратор. Доступны следующие команды:\n{'\n'.join(commands)}",
+                reply_markup=handlers_reply()
+            )
         else:
             if is_subscribed(CHANNEL_ID, message.from_user.id):
                 # Если пользователь подписан на канал, тогда ему можно пользоваться ботом.
