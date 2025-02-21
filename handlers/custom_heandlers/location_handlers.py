@@ -3,7 +3,7 @@ from telebot.types import Message
 from config_data.config import CHANNEL_ID
 from database.models import User, Server, VPNKey
 from loader import bot, app_logger
-from keyboards.inline.servers import get_locations_markup
+from keyboards.inline.servers import get_locations_markup, get_instruction_markup
 from states.states import GetVPNKey
 from utils.functions import is_subscribed
 from utils.generate_vpn_keys import generate_key
@@ -70,7 +70,8 @@ def get_server_handler(call):
                         f"🌍 Сервер: *{cur_server.location}*\n"
                         f"🔗 URL для подключения:\n\n`{vpn_key_obj.key}`"
                     ),
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
+                    reply_markup=get_instruction_markup()
                 )
             bot.set_state(call.message.chat.id, None)
             return
@@ -105,6 +106,7 @@ def get_server_handler(call):
                 f"🌍 Сервер: *{cur_server.location}*\n"
                 f"🔗 URL для подключения:\n\n`{new_key.key}`"
             ),
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=get_instruction_markup()
         )
     bot.set_state(call.message.chat.id, None)

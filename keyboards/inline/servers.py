@@ -9,3 +9,11 @@ def get_locations_markup():
     for server in servers_obj:
         actions.add(InlineKeyboardButton(text=f"🌍 {server.location}", callback_data=str(server.id)))
     return actions
+
+def get_instruction_markup():
+    """ Inline buttons для выдачи ссылки на инструкцию """
+    actions = InlineKeyboardMarkup(row_width=1)
+    actions.add(InlineKeyboardButton(text="📖 Инструкция для подключения", url="https://telegra.ph/"
+                                                                              "Kak-ispolzovat-VPN-servis-"
+                                                                              "Guard-Tunnel-01-16"))
+    return actions
