@@ -23,8 +23,8 @@ if __name__ == '__main__':
     app_logger.info("Запущен планировщик для проверки подписки пользователей и отзыва ключей.")
 
     # Каждые 8 часов отправляем уведомления о продлении ключей
-    scheduler.add_job(send_renewal_notifications, 'interval', hours=8, args=[scheduler], next_run_time=datetime.now())
-    app_logger.info("Запущен планировщик для продления ключей.")
+    # scheduler.add_job(send_renewal_notifications, 'interval', hours=8, args=[scheduler], next_run_time=datetime.now())
+    # app_logger.info("Запущен планировщик для продления ключей.")
 
     app_logger.info(f"Бот @{bot.get_me().username} запущен.")
     bot.send_message(ADMIN_ID, "Бот запущен.")
