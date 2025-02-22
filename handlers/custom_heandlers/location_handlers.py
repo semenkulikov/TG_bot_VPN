@@ -2,11 +2,12 @@ from telebot.types import Message
 
 from config_data.config import CHANNEL_ID
 from database.models import User, Server, VPNKey
-from loader import bot, app_logger
+from loader import bot, app_logger, scheduler
 from keyboards.inline.servers import get_locations_markup, get_instruction_markup
 from states.states import GetVPNKey
 from utils.functions import is_subscribed
 from utils.generate_vpn_keys import generate_key
+from utils.tasks import cancel_key_revocation
 from utils.work_vpn_keys import revoke_key
 
 
@@ -109,3 +110,19 @@ def get_server_handler(call):
             reply_markup=get_instruction_markup()
         )
     bot.set_state(call.message.chat.id, None)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("renew_"))
+def renew_key_handler(call):
+    bot.answer_callback_query(callback_query_id=call.id)
+    try:
+        vpn_key_id = int(call.data.split("_")[1])
+        vpn_key = VPNKey.get_by_id(vpn_key_id)
+        # Отменяем запланированную задачу отзыва
+        cancel_key_revocation(vpn_key, scheduler)
+        bot.send_message(call.message.chat.id,
+                         f"✅ Ваш VPN ключ «{vpn_key.name}» успешно продлён!")
+        app_logger.info(f"VPN ключ {vpn_key.name} продлён пользователем {call.from_user.full_name}.")
+    except Exception as e:
+        app_logger.error(f"Ошибка в обработчике продления ключа: {e}")
+        bot.send_message(call.message.chat.id, "❌ Произошла ошибка при продлении ключа.")
