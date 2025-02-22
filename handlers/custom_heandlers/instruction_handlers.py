@@ -1,4 +1,6 @@
 from telebot.types import Message
+
+from config_data.config import CHANNEL_ID
 from database.models import User
 from loader import bot, app_logger
 from keyboards.inline.app_buttons import get_apps_murkup
@@ -19,4 +21,6 @@ def instruction_handler(message: Message):
         )
         bot.send_message(message.chat.id, instruction_text, parse_mode="Markdown", reply_markup=get_apps_murkup())
     else:
-        bot.send_message(message.chat.id, "Вы не подписаны на канал!")
+        bot.send_message(message.chat.id, f"🚫 Вы не подписаны на [наш канал](https://t.me/{CHANNEL_ID[1:]})!\n"
+                                          f"Подпишитесь, чтобы получить доступ ко всему функционалу.",
+                         parse_mode="Markdown")
