@@ -144,6 +144,7 @@ def add_server(message: Message):
     except Exception as ex:
         bot.send_message(message.from_user.id, f"❌ Некорректные данные!\n{ex}")
         app_logger.error(f"Ошибка при добавлении сервера {ex}")
+        bot.set_state(message.from_user.id, None)
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_vpn_keys)
