@@ -136,6 +136,7 @@ def add_server(message: Message):
         else:
             bot.send_message(message.from_user.id, "❌ Ошибка настройки сервера!")
             server.delete_instance()
+            bot.set_state(message.from_user.id, None)
             return
 
         bot.set_state(message.from_user.id, None)
