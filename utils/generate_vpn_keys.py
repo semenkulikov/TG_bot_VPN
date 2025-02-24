@@ -168,6 +168,8 @@ def execute_ssh_command(ip: str, username: str, password: str, command: str, tim
 def setup_server(server_obj: Server) -> bool:
     """
     Настраивает сервер для работы VPN.
+    Если возникают какие-то ошибки при установке пакетов -
+    https://timeweb.cloud/docs/unix-guides/troubleshooting-unix/ustranenie-oshibki-could-not-get-lock-var-lib-dpkg-lock
 
     Алгоритм:
       1. Подключение по SSH с правами администратора.
@@ -234,14 +236,14 @@ def setup_server(server_obj: Server) -> bool:
                 "curl -O https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh && "
                 f"echo {DEFAULT_SERVER_PASSWORD} | sudo -S bash install-release.sh"
             )
-            execute_ssh_command(
+            output_install_xray = execute_ssh_command(
                 ip=server_obj.ip_address,
                 username=DEFAULT_SERVER_USER,
                 password=DEFAULT_SERVER_PASSWORD,
                 command=install_xray_cmd,
                 timeout=300
             )
-            app_logger.info(f"Установка Xray выполнена успешно.")
+            app_logger.info(f"Установка Xray выполнена успешно. Вывод: {output_install_xray}")
         else:
             app_logger.info("Xray уже установлен. Сервер настроен")
             return True

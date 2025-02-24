@@ -135,6 +135,7 @@ def get_inactive_keys(server: Server) -> list[VPNKey]:
 
 def cleanup_server(server: Server) -> bool:
     """Полная очистка сервера от Xray и конфигов, с подробным логированием."""
+    app_logger.info(f"Администратор запросил полное удаление севрера {server.location}. Начинаю очистку...")
     try:
         cmds = [
             # Остановка и отключение службы Xray
