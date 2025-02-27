@@ -1,9 +1,8 @@
 import datetime
 import os.path
 import re
-
-from config_data.config import BASE_DIR
 import peewee
+from config_data.config import BASE_DIR
 
 db = peewee.SqliteDatabase(os.path.join(BASE_DIR, "database/database.db"))
 
@@ -50,8 +49,11 @@ class User(BaseModel):
     username = peewee.CharField()
     is_premium = peewee.BooleanField(null=True)
     is_subscribed = peewee.BooleanField(default=False)
-    vpn_key = peewee.ForeignKeyField(VPNKey, related_name="users", null=True, on_update="set null",
-                                     on_delete="set null")
+
+
+class UserVPNKey(BaseModel):
+    user = peewee.ForeignKeyField(User, backref="vpn_keys")
+    vpn_key = peewee.ForeignKeyField(VPNKey, backref="users")
 
 
 class Group(BaseModel):
@@ -64,6 +66,9 @@ class Group(BaseModel):
     location = peewee.CharField(null=True)
     username = peewee.CharField(null=True)
 
+class Migration(BaseModel):
+    """Модель для отслеживания применённых миграций."""
+    name = peewee.CharField(unique=True)
 
 def create_models():
     db.create_tables(BaseModel.__subclasses__())

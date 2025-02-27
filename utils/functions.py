@@ -1,7 +1,10 @@
 from config_data.config import DEFAULT_COMMANDS, ADMIN_COMMANDS
 from loader import bot, app_logger
 import json
-
+import os
+import importlib.util
+from database.models import Migration
+from config_data.config import BASE_DIR
 
 
 def is_subscribed(chat_id, user_id):
@@ -63,3 +66,27 @@ def get_all_commands_bot():
     total_commands.extend([f"/{elem[0]}" for elem in ADMIN_COMMANDS])
     total_commands.extend(["🌍 Серверы", "❓ Справка", "📖 Инструкция"])
     return total_commands
+
+
+def run_migrations():
+    migrations_dir = os.path.join(BASE_DIR, "migrations")
+    if not os.path.exists(migrations_dir):
+        app_logger.info("Папка миграций не найдена. Пропускаем миграции.")
+        return
+    migration_files = sorted([f for f in os.listdir(migrations_dir) if f.endswith(".py")])
+    for filename in migration_files:
+        try:
+            # Проверяем, применена ли миграция
+            Migration.get(Migration.name == filename)
+            app_logger.info(f"Миграция {filename} уже применена.")
+        except Migration.DoesNotExist:
+            filepath = os.path.join(migrations_dir, filename)
+            spec = importlib.util.spec_from_file_location("migration_module", filepath)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            if hasattr(module, "run_migration"):
+                module.run_migration()
+                Migration.create(name=filename)
+                app_logger.info(f"Миграция {filename} успешно применена.")
+            else:
+                app_logger.error(f"В файле {filename} отсутствует функция run_migration().")
