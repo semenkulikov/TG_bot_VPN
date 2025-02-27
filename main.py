@@ -3,6 +3,8 @@ from datetime import datetime
 from loader import bot, app_logger, scheduler
 import handlers  # noqa
 from telebot.custom_filters import StateFilter
+
+from utils.functions import run_migrations
 from utils.set_bot_commands import set_default_commands
 from database.models import create_models
 from config_data.config import ADMIN_ID
@@ -10,7 +12,9 @@ from utils.tasks import check_and_revoke_keys, send_renewal_notifications
 
 if __name__ == '__main__':
     create_models()
-    app_logger.debug("Подключение к базе данных...")
+    app_logger.debug("Создание моделей...")
+    run_migrations()
+    app_logger.info("Запуск миграций...")
     bot.add_custom_filter(StateFilter(bot))
     set_default_commands(bot)
     app_logger.info("Загрузка базовых команд...")
