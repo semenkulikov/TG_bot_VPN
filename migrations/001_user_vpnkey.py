@@ -3,6 +3,7 @@ from playhouse.migrate import SqliteMigrator, migrate
 from database.models import db, User, VPNKey, UserVPNKey
 from loader import app_logger
 
+
 def run_migration():
     migrator = SqliteMigrator(db)
 
@@ -13,11 +14,10 @@ def run_migration():
     else:
         app_logger.debug("Таблица UserVPNKey уже существует.")
 
-    # 2. Получаем список столбцов в таблице user
+    # 2. Получаем список столбцов таблицы user с помощью db.get_columns
     user_columns = [col.name for col in db.get_columns('user')]
-    # В старой модели поле ForeignKeyField создавалось как vpn_key_id.
     if 'vpn_key_id' in user_columns:
-        # Используем сырой SQL для получения записей, где vpn_key_id не NULL
+        # Используем сырой SQL для получения значений столбца vpn_key_id
         cursor = db.execute_sql('SELECT id, vpn_key_id FROM "user" WHERE vpn_key_id IS NOT NULL')
         rows = cursor.fetchall()
         for row in rows:
@@ -26,10 +26,10 @@ def run_migration():
             try:
                 user_obj = User.get_by_id(user_pk)
             except User.DoesNotExist:
-                app_logger.error(f"Пользователь с pk={user_pk} не найден.")
+                app_logger.error(f"Пользователь с id={user_pk} не найден.")
                 continue
             try:
-                # Проверяем, существует ли уже запись в UserVPNKey
+                # Если запись ещё не существует, создаём её
                 UserVPNKey.get(user=user_obj, vpn_key=vpn_key_id_val)
             except peewee.DoesNotExist:
                 UserVPNKey.create(user=user_obj, vpn_key=vpn_key_id_val)
@@ -43,4 +43,4 @@ def run_migration():
         except Exception as e:
             app_logger.error(f"Ошибка при удалении столбца vpn_key_id: {e}")
     else:
-        app_logger.debug("Столбец vpn_key_id уже отсутствует, пропускаем перенос данных.")
+        app_logger.debug("Столбец vpn_key_id отсутствует, перенос данных не требуется.")
