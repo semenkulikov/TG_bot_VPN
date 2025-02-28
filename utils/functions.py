@@ -9,15 +9,25 @@ from config_data.config import BASE_DIR
 
 def is_subscribed(chat_id, user_id):
     """
-    Функция для проверки, подписан ли пользователь на канал.
-    :param chat_id: id канала
-    :param user_id: id пользователя
-    :return: bool
+    Проверяет, подписан ли пользователь на канал.
+    Возвращает True, если статус входит в ("creator", "administrator", "member", "restricted").
+    Если user_id некорректен, возвращает False.
     """
-    result = bot.get_chat_member(chat_id, user_id)
-    if result.status in ("creator", "administrator", "member", "restricted"):
-        return True
+    try:
+        # Приводим user_id к целому числу, если это возможно
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        app_logger.error(f"Некорректный user_id: {user_id}")
+        return False
+
+    try:
+        result = bot.get_chat_member(chat_id, user_id)
+        if result.status in ("creator", "administrator", "member", "restricted"):
+            return True
+    except Exception as e:
+        app_logger.error(f"Ошибка при получении информации о пользователе {user_id}: {e}")
     return False
+
 
 
 def valid_ip(address):
