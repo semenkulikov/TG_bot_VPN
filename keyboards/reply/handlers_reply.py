@@ -6,4 +6,5 @@ def handlers_reply() -> ReplyKeyboardMarkup:
                                    input_field_placeholder="Нажмите на нужную кнопку либо введите команду...")
     keyboard.add(KeyboardButton('🌍 Серверы'), KeyboardButton('❓ Справка'))
     keyboard.add(KeyboardButton('📖 Инструкция'))
+    keyboard.add(KeyboardButton('🔧 Панель управления'))
     return keyboard
