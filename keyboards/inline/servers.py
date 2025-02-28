@@ -1,5 +1,7 @@
+from typing import List
+
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database.models import Server
+from database.models import Server, UserVPNKey
 
 
 def get_locations_markup():
@@ -17,3 +19,14 @@ def get_instruction_markup():
                                                                               "Kak-ispolzovat-VPN-servis-"
                                                                               "Guard-Tunnel-01-16"))
     return actions
+
+
+def get_deleted_key_markup(user_keys: List[UserVPNKey]):
+    """ Inline buttons для выбора ключа, который надо удалить """
+    markup = InlineKeyboardMarkup(row_width=1)
+    for uv in user_keys:
+        markup.add(InlineKeyboardButton(
+            text=f"{uv.vpn_key.name}",
+            callback_data=f"remove_key_{uv.vpn_key.id}"
+        ))
+    return markup

@@ -10,8 +10,12 @@ def is_subscribed_markup():
                 InlineKeyboardButton(text=f" ✅ Я подписался", callback_data="2"))
     return actions
 
-def get_renew_markup(vpn_key_id: int):
-    """Возвращает inline-клавиатуру с кнопкой «Продлить ключ»."""
+
+def get_renew_markup_for_user(user_id: str):
+    """
+    Возвращает inline-клавиатуру с кнопкой продления для пользователя.
+    В callback_data будем передавать 'renew_user_{user_id}'
+    """
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton(text="🔄 Продлить ключ", callback_data=f"renew_{vpn_key_id}"))
+    markup.add(InlineKeyboardButton(text="🔄 Продлить ключи", callback_data=f"renew_user_{user_id}"))
     return markup
