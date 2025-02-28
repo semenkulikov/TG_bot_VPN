@@ -55,6 +55,9 @@ def bot_start(message: Message):
                 bot.send_message(message.from_user.id, start_text.format(channel_id=CHANNEL_ID[1:]),
                                  reply_markup=is_subscribed_markup(), parse_mode='Markdown',
                                  disable_web_page_preview=True)
+                cur_user = User.get(User.user_id == message.from_user.id)
+                cur_user.is_subscribed = False
+                cur_user.save()
                 bot.set_state(message.from_user.id, SubscribedState.subscribe)
 
     else:

@@ -21,8 +21,10 @@ def check_and_revoke_keys():
 
     # Перебираем всех пользователей
     for user in User.select():
-        # Если пользователь не подписан (проверка с использованием функции is_subscribed)
-        if not is_subscribed(CHANNEL_ID, user.user_id):
+        if is_subscribed(CHANNEL_ID, user.user_id):
+            user.is_subscribed = True
+            user.save()
+        else:
             user.is_subscribed = False
             app_logger.info(f"Пользователь {user.full_name} не подписан на канал.")
             # Перебираем все VPN ключи, связанные с этим пользователем (через связь many-to-many)
