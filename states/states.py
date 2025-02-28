@@ -22,3 +22,4 @@ class SubscribedState(StatesGroup):
 class GetVPNKey(StatesGroup):
     get_server = State()
     get_key = State()
+    choose_key_to_replace = State()
