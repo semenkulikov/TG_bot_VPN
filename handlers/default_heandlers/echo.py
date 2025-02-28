@@ -1,4 +1,6 @@
 from telebot.types import Message
+
+from handlers.custom_heandlers.user_handlers import user_panel
 from loader import bot
 from handlers.custom_heandlers.location_handlers import location_handler
 from handlers.default_heandlers.help import bot_help
@@ -15,6 +17,8 @@ def bot_echo(message: Message):
         bot_help(message)
     elif message.text == "📖 Инструкция":
         instruction_handler(message)
+    elif message.text == "🔧 Панель управления":
+        user_panel(message)
     else:
         bot.reply_to(message, f"Введите любую команду из меню, чтобы я начал работать\n"
                               f"Либо выберите одну из кнопок, которые я вам прислал 👇")

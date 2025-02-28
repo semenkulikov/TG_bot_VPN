@@ -9,7 +9,7 @@ from keyboards.inline.app_buttons import get_apps_murkup
 @bot.message_handler(commands=["instruction"])
 def instruction_handler(message: Message):
     """ Хендлер для выбора сервера подключения """
-    app_logger.info(f"Пользователь {message.from_user.full_name} вызвал команду /location")
+    app_logger.info(f"Пользователь {message.from_user.full_name} вызвал команду /instruction")
     cur_user = User.get(User.user_id == message.from_user.id)
 
     if cur_user.is_subscribed:
