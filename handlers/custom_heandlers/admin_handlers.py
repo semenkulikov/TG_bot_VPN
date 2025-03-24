@@ -43,7 +43,8 @@ def admin_panel_handler(call):
         app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
     elif call.data == "users":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в юзер панель.")
-        bot.send_message(call.message.chat.id, "👥 Список всех пользователей базы данных:", reply_markup=users_markup())
+        bot.send_message(call.message.chat.id, "👥 Список всех пользователей базы данных:",
+                         reply_markup=users_markup(page=1))
         bot.set_state(call.message.chat.id, AdminPanel.get_users)
     elif call.data == "servers":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в панель управления серверами.")
@@ -51,27 +52,44 @@ def admin_panel_handler(call):
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
 
 
-@bot.callback_query_handler(func=None, state=AdminPanel.get_users)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("user_") or
+                                              call.data.startswith("users_page_") or
+                                              call.data == "Exit_to_admin_panel",
+                            state=AdminPanel.get_users)
 def get_user(call):
     """ Хендлер для работы с юзерами из админ панели """
+
     bot.answer_callback_query(callback_query_id=call.id)
-    if call.data == "Exit":
+    if call.data == "Exit_to_admin_panel":
         bot.send_message(call.message.chat.id, "Выберите опцию", reply_markup=admin_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
-        app_logger.info(f"Администратор {call.from_user.full_name} вернулся обратно к выбору опций.")
-    else:
-        user_obj: User = User.get_by_id(call.data)
-        # Новая логика: получаем список VPN ключей пользователя через обратное свойство vpn_keys
-        vpn_keys_list = [uv.vpn_key.name for uv in user_obj.vpn_keys]  # uv - связь из UserVPNKey
-        vpn_keys_str = ", ".join(vpn_keys_list) if vpn_keys_list else "отсутствует"
-        app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о пользователе {user_obj.full_name}")
-        bot.send_message(
-            call.message.chat.id,
-            f"👤 Имя: {user_obj.full_name}\n"
-            f"📱 Телеграм: @{user_obj.username}\n"
-            f"📢 Подписан на канал: {user_obj.is_subscribed}\n"
-            f"🔑 VPN ключи: {vpn_keys_str}"
-        )
+        app_logger.info(f"Администратор {call.from_user.full_name} вернулся к выбору опций.")
+    elif call.data.startswith("users_page_"):
+        # Извлекаем номер страницы и обновляем сообщение с клавиатурой
+        try:
+            page = int(call.data.split("_")[-1])
+            new_markup = users_markup(page=page)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=new_markup)
+        except (ValueError, IndexError):
+            app_logger.error("Ошибка при обработке номера страницы в пагинации пользователей.")
+    elif call.data.startswith("user_"):
+        # Извлекаем ID пользователя
+        try:
+            user_id = int(call.data.split("_")[1])
+            user_obj: User = User.get_by_id(user_id)
+            vpn_keys_list = [uv.vpn_key.name for uv in user_obj.vpn_keys]  # связь из UserVPNKey
+            vpn_keys_str = ", ".join(vpn_keys_list) if vpn_keys_list else "отсутствует"
+            app_logger.info(
+                f"Администратор {call.from_user.full_name} запросил информацию о пользователе {user_obj.full_name}")
+            bot.send_message(
+                call.message.chat.id,
+                f"👤 Имя: {user_obj.full_name}\n"
+                f"📱 Телеграм: @{user_obj.username}\n"
+                f"📢 Подписан на канал: {user_obj.is_subscribed}\n"
+                f"🔑 VPN ключи: {vpn_keys_str}"
+            )
+        except (ValueError, peewee.DoesNotExist):
+            bot.send_message(call.message.chat.id, "❌ Пользователь не найден или произошла ошибка.")
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_servers)
