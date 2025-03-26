@@ -22,6 +22,9 @@ ADMIN_COMMANDS = (
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH_TO_PYTHON = os.path.normpath(os.path.join(BASE_DIR, ".venv/bin/python.exe"))
+LOCALES_DIR = os.path.normpath(os.path.join(BASE_DIR, 'locales'))
+LOG_DIR = os.path.normpath(os.path.join(BASE_DIR, "logs"))
+
 ADMIN_ID = os.getenv('ADMIN_ID')
 ALLOWED_USERS = [int(ADMIN_ID),
                  418333240,  # владелец канала
@@ -39,6 +42,11 @@ QR_CODE_DIR = os.path.join(BASE_DIR, "qr_codes")  # Папка для хране
 # Убедимся, что папка для QR-кодов существует
 if not os.path.exists(QR_CODE_DIR):
     os.makedirs(QR_CODE_DIR)
+
+# Убедимся, что папка для логов существует
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
 
 XRAY_REALITY_FINGERPRINT = "chrome"
 
