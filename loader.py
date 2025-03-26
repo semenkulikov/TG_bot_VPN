@@ -12,7 +12,7 @@ import logging
 from config_data.config import LOG_DIR
 
 storage = StateMemoryStorage()
-bot = TeleBot(token=config.BOT_TOKEN, state_storage=storage)
+bot = TeleBot(token=config.BOT_TOKEN, state_storage=storage, use_class_middlewares=True)
 bot.setup_middleware(I18nMiddleware())
 scheduler = BackgroundScheduler()
 
