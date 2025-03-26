@@ -6,9 +6,10 @@ from utils.functions import is_subscribed
 from keyboards.inline.subscribed import is_subscribed_markup
 from keyboards.reply.handlers_reply import handlers_reply
 from states.states import SubscribedState
+from i18n_middleware import _
 
 
-start_text = """*Вы не подписались на канал!*
+start_text = _("""*Вы не подписались на канал!*
                 
 ☺️ Для доступа к полному функционалу бота вам необходимо подписаться на наш новостной канал [Guard Tunnel VPN](https://t.me/{channel_id})
                 
@@ -16,7 +17,7 @@ start_text = """*Вы не подписались на канал!*
                 
 *С Уважением, команда Guard Tunnel VPN*
                 
-_После подписки на наш канал нажмите ниже на кнопку: ✅ Я подписался_"""
+_После подписки на наш канал нажмите ниже на кнопку: ✅ Я подписался_""")
 
 
 @bot.message_handler(commands=['start'])
@@ -35,18 +36,24 @@ def bot_start(message: Message):
             commands.extend([f"/{command} - {description}" for command, description in ADMIN_COMMANDS])
             bot.send_message(
                 message.from_user.id,
-                f"Здравствуйте, {message.from_user.full_name}! 👋\n"
-                f"Вы вошли как администратор. Доступны следующие команды:\n{'\n'.join(commands)}",
+                _("Здравствуйте, {full_name}! 👋\n"
+                "Вы вошли как администратор. Доступны следующие команды:\n{commands}").format(
+                    full_name=message.from_user.full_name,
+                    commands='\n'.join(commands)
+                ),
                 reply_markup=handlers_reply()
             )
         else:
             if is_subscribed(CHANNEL_ID, message.from_user.id):
                 # Если пользователь подписан на канал, тогда ему можно пользоваться ботом.
-                bot.send_message(message.from_user.id, f"Приветствуем, {message.from_user.full_name}.\n"
-                                                       f"Рады приветствовать вас на нашем сервисе!\n"
-                                                       f"Что бы использовать наш VPN сервис, "
-                                                       f"следуйте инструкциям ниже 👇\n"
-                                                       f"{'\n'.join(commands)}",
+                bot.send_message(message.from_user.id, _("Приветствуем, {full_name}.\n"
+                                                       "Рады приветствовать вас на нашем сервисе!\n"
+                                                       "Что бы использовать наш VPN сервис, "
+                                                       "следуйте инструкциям ниже 👇\n"
+                                                       "{commands}").format(
+                    full_name=message.from_user.full_name,
+                    commands='\n'.join(commands)
+                ),
                                  reply_markup=handlers_reply())
                 cur_user = User.get(User.user_id == message.from_user.id)
                 cur_user.is_subscribed = True
@@ -61,9 +68,9 @@ def bot_start(message: Message):
                 bot.set_state(message.from_user.id, SubscribedState.subscribe)
 
     else:
-        bot.send_message(message.chat.id, "Здравствуйте! Я - телеграм бот, модератор каналов и групп. "
+        bot.send_message(message.chat.id, _("Здравствуйте! Я - телеграм бот, модератор каналов и групп. "
                                           "Чтобы получить больше информации, "
-                                          "обратитесь к администратору, или напишите мне в личку)")
+                                          "обратитесь к администратору, или напишите мне в личку)"))
         if Group.get_or_none(group_id=message.chat.id) is None:
             Group.create(group_id=message.chat.id,
                          title=message.chat.title,
@@ -91,9 +98,11 @@ def is_subscribed_handler(call):
         cur_user.save()
 
         bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, "Спасибо, что выбрали наш сервис, приятного использования!\n"
+        bot.send_message(call.message.chat.id, _("Спасибо, что выбрали наш сервис, приятного использования!\n"
                                                f"Вам доступны следующие команды:\n"
-                                               f"{'\n'.join(commands)}")
+                                               "{commands}").format(
+            commands='\n'.join(commands)
+        ))
         bot.set_state(call.message.chat.id, None)
     else:
         bot.answer_callback_query(callback_query_id=call.id)
