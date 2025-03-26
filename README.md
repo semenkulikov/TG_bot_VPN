@@ -24,6 +24,13 @@
 
 Бот должен сохранять в БД всех пользователей 
 
+Бот работает на двух языках — русском и английском
+Для генерации переводов:
+```
+msgfmt locales/ru/LC_MESSAGES/messages.po -o locales/ru/LC_MESSAGES/messages.mo
+msgfmt locales/en/LC_MESSAGES/messages.po -o locales/en/LC_MESSAGES/messages.mo
+```
+
 **Админ панель:** 
 * Настройка серверов 
 * Рассылки пользователям
