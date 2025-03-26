@@ -5,6 +5,7 @@ from loader import bot
 from handlers.custom_heandlers.location_handlers import location_handler
 from handlers.default_heandlers.help import bot_help
 from handlers.custom_heandlers.instruction_handlers import instruction_handler
+from i18n_middleware import _
 
 
 # Эхо хендлер, куда летят текстовые сообщения без указанного состояния
@@ -20,6 +21,6 @@ def bot_echo(message: Message):
     elif message.text == "🔧 Панель управления":
         user_panel(message)
     else:
-        bot.reply_to(message, f"Введите любую команду из меню, чтобы я начал работать\n"
-                              f"Либо выберите одну из кнопок, которые я вам прислал 👇")
+        bot.reply_to(message, _("Введите любую команду из меню, чтобы я начал работать\n"
+                              "Либо выберите одну из кнопок, которые я вам прислал 👇"))
 
