@@ -17,6 +17,7 @@ from states.states import AdminPanel
 from utils.functions import valid_ip, convert_amnezia_xray_json_to_vless_str, get_all_commands_bot
 from utils.generate_vpn_keys import setup_server, generate_key
 from utils.work_vpn_keys import suspend_key, resume_key, revoke_key, cleanup_server
+from i18n_middleware import _
 
 
 @bot.message_handler(commands=["admin_panel"])
@@ -24,11 +25,11 @@ def admin_panel(message: Message):
     """ Хендлер для админ панели """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} зашел в админ панель.")
-        bot.send_message(message.from_user.id, "🔧 Добро пожаловать в админ панель!\n\nВыберите нужную опцию ниже 👇",
+        bot.send_message(message.from_user.id, _("🔧 Добро пожаловать в админ панель!\n\nВыберите нужную опцию ниже 👇"),
                          reply_markup=admin_markup())
         bot.set_state(message.from_user.id, AdminPanel.get_option)
     else:
-        bot.send_message(message.from_user.id, "❌ У вас недостаточно прав")
+        bot.send_message(message.from_user.id, _("❌ У вас недостаточно прав"))
         app_logger.warning(f"Пользователь {message.from_user.full_name} пытался войти в админ панель")
 
 
@@ -38,18 +39,21 @@ def admin_panel_handler(call):
     bot.answer_callback_query(callback_query_id=call.id)
 
     if call.data == "Exit":
-        bot.send_message(call.message.chat.id, "🚪 Вы успешно вышли из админ панели. До встречи!")
+        bot.send_message(call.message.chat.id, _("🚪 Вы успешно вышли из админ панели. До встречи!"))
         bot.set_state(call.message.chat.id, None)
         app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
     elif call.data == "users":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в юзер панель.")
         users_count = len(User.select())
-        bot.send_message(call.message.chat.id, f"👥 Список всех пользователей базы данных (Кол-во: {users_count}):",
+        bot.send_message(call.message.chat.id, _("👥 Список всех пользователей базы данных "
+                                                 "(Кол-во: {users_count}):").format(
+            users_count=users_count
+        ),
                          reply_markup=users_markup(page=1))
         bot.set_state(call.message.chat.id, AdminPanel.get_users)
     elif call.data == "servers":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в панель управления серверами.")
-        bot.send_message(call.message.chat.id, "🖥 Панель управления серверами:", reply_markup=get_servers_markup())
+        bot.send_message(call.message.chat.id, _("🖥 Панель управления серверами:"), reply_markup=get_servers_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
 
 
@@ -62,7 +66,7 @@ def get_user(call):
 
     bot.answer_callback_query(callback_query_id=call.id)
     if call.data == "Exit_to_admin_panel":
-        bot.send_message(call.message.chat.id, "Выберите опцию", reply_markup=admin_markup())
+        bot.send_message(call.message.chat.id, _("Выберите опцию"), reply_markup=admin_markup())
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся к выбору опций.")
     elif call.data.startswith("users_page_"):
@@ -84,13 +88,18 @@ def get_user(call):
                 f"Администратор {call.from_user.full_name} запросил информацию о пользователе {user_obj.full_name}")
             bot.send_message(
                 call.message.chat.id,
-                f"👤 Имя: {user_obj.full_name}\n"
-                f"📱 Телеграм: @{user_obj.username}\n"
-                f"📢 Подписан на канал: {user_obj.is_subscribed}\n"
-                f"🔑 VPN ключи: {vpn_keys_str}"
+                _("👤 Имя: {full_name}\n"
+                "📱 Телеграм: @{username}\n"
+                "📢 Подписан на канал: {is_subscribed}\n"
+                "🔑 VPN ключи: {vpn_keys_str}").format(
+                    full_name=user_obj.full_name,
+                    username=user_obj.username,
+                    is_subscribed=user_obj.is_subscribed,
+                    vpn_keys_str=vpn_keys_str
+                )
             )
         except (ValueError, peewee.DoesNotExist):
-            bot.send_message(call.message.chat.id, "❌ Пользователь не найден или произошла ошибка.")
+            bot.send_message(call.message.chat.id, _("❌ Пользователь не найден или произошла ошибка."))
 
 
 @bot.callback_query_handler(func=None, state=AdminPanel.get_servers)
@@ -100,11 +109,11 @@ def server_panel_handler(call):
 
     if call.data == "Add":
         bot.send_message(call.message.chat.id,
-                         "📄 Введите данные сервера в следующем формате:\n"
+                         _("📄 Введите данные сервера в следующем формате:\n"
                          "🏙 Location (например, США)\n"
                          "👤 Username (например, root)\n"
                          "🔒 Password (пароль от root)\n"
-                         "🌐 IP address"
+                         "🌐 IP address")
                          )
         bot.set_state(call.message.chat.id, AdminPanel.add_server)
         return
@@ -115,13 +124,18 @@ def server_panel_handler(call):
     app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о сервере {server_obj.location}")
 
     # Проверка, настроен ли сервер
-    status = "✅ Настроен" if server_obj.public_key else "❌ Требует настройки"
+    status = _("✅ Настроен") if server_obj.public_key else _("❌ Требует настройки")
 
     bot.send_message(call.message.chat.id,
-                     f"🖥 Сервер: {server_obj.location}\n"
-                     f"🔰 Статус: {status}\n"
-                     f"🌐 IP адрес: {server_obj.ip_address}\n"
-                     f"🔑 Количество ключей: {server_obj.keys.count()}",
+                     _("🖥 Сервер: {location}\n"
+                     "🔰 Статус: {status}\n"
+                     "🌐 IP адрес: {ip_address}\n"
+                     "🔑 Количество ключей: {keys_count}").format(
+                         location=server_obj.location,
+                         status=status,
+                         ip_address=server_obj.ip_address,
+                         keys_count=server_obj.keys.count()
+                     ),
                      reply_markup=get_vpn_markup(server_id))
     bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
 
@@ -132,9 +146,9 @@ def add_server(message: Message):
     try:
         server_data = [item.strip() for item in message.text.split("\n")]
         if len(server_data) != 4:
-            raise ValueError("❌ Неверное количество полей!")
+            raise ValueError(_("❌ Неверное количество полей!"))
         elif valid_ip(server_data[3]) is False:
-            raise ValueError("❌ Неверный формат IP адреса!")
+            raise ValueError(_("❌ Неверный формат IP адреса!"))
 
         # Создаем сервер и настраиваем
         server = Server.create(
@@ -144,13 +158,13 @@ def add_server(message: Message):
             ip_address=server_data[3]
         )
         app_logger.info(f"Администратор {message.from_user.full_name} начинает настройку сервера {server.location}")
-        bot.send_message(message.from_user.id, "Начинаю настройку сервера, подождите...")
+        bot.send_message(message.from_user.id, _("Начинаю настройку сервера, подождите..."))
 
         # Автоматическая настройка сервера
         if setup_server(server):
-            bot.send_message(message.from_user.id, "✅ Сервер успешно настроен!")
+            bot.send_message(message.from_user.id, _("✅ Сервер успешно настроен!"))
         else:
-            bot.send_message(message.from_user.id, "❌ Ошибка настройки сервера!")
+            bot.send_message(message.from_user.id, _("❌ Ошибка настройки сервера!"))
             server.delete_instance()
             bot.set_state(message.from_user.id, None)
             return
@@ -159,7 +173,9 @@ def add_server(message: Message):
         app_logger.info(f"Администратор {message.from_user.full_name} добавил сервер {server.location}")
 
     except Exception as ex:
-        bot.send_message(message.from_user.id, f"❌ Некорректные данные!\n{ex}")
+        bot.send_message(message.from_user.id, _("❌ Некорректные данные!\n{ex}").format(
+            ex=ex
+        ))
         app_logger.error(f"Ошибка при добавлении сервера {ex}")
         bot.set_state(message.from_user.id, None)
 
@@ -175,14 +191,16 @@ def vpn_panel_handler(call):
         server = Server.get_by_id(server_id)
         app_logger.info(f"Администратор {call.from_user.full_name} запросил генерацию"
                         f" VPN ключа для сервера {server.location}")
-        bot.send_message(call.message.chat.id, f"⌛ Пожалуйста, подождите... Идет генерация нового VPN ключа...")
+        bot.send_message(call.message.chat.id, _("⌛ Пожалуйста, подождите... Идет генерация нового VPN ключа..."))
         key = generate_key(server)
         if key:
-            bot.send_message(call.message.chat.id, f"✅ Отлично! VPN ключ «{key.name}» успешно создан!")
+            bot.send_message(call.message.chat.id, _("✅ Отлично! VPN ключ «{key_name}» успешно создан!").format(
+                key_name=key.name
+            ))
             app_logger.info(f"Администратор {call.from_user.full_name} успешно создал "
                             f"VPN ключ {key.name} для сервера {server.location}")
         else:
-            bot.send_message(call.message.chat.id, "❌ Ошибка генерации ключа!")
+            bot.send_message(call.message.chat.id, _("❌ Ошибка генерации ключа!"))
 
         bot.set_state(call.message.chat.id, AdminPanel.get_vpn_keys)
         return
@@ -190,14 +208,16 @@ def vpn_panel_handler(call):
     if "Delete" in call.data:
         server_id = call.data.split()[1]
         server_obj: Server = Server.get_by_id(server_id)
-        bot.send_message(call.message.chat.id, "🗑 Начинается полная очистка сервера. Пожалуйста, подождите...")
+        bot.send_message(call.message.chat.id, _("🗑 Начинается полная очистка сервера. Пожалуйста, подождите..."))
         if cleanup_server(server_obj):
             app_logger.info(f"Администратор {call.from_user.full_name} удалил сервер {server_obj.location}")
-            bot.send_message(call.message.chat.id, f"✅ Сервер {server_obj.location} успешно удалён вместе "
-                                                   f"с привязанными VPN ключами!")
+            bot.send_message(call.message.chat.id, _("✅ Сервер {server_location} успешно удалён вместе "
+                                                   "с привязанными VPN ключами!").format(
+                server_location=server_obj.location
+            ))
             bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         else:
-            bot.send_message(call.message.chat.id, "❌ Ошибка удаления сервера!")
+            bot.send_message(call.message.chat.id, _("❌ Ошибка удаления сервера!"))
             bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
@@ -205,17 +225,21 @@ def vpn_panel_handler(call):
         # Выдача всей информации по VPN ключу
         vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
         app_logger.info(f"Администратор {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-        status = "✅ Активен" if vpn_obj.is_valid else "⏸ Приостановлен / Занят"
+        status = _("✅ Активен") if vpn_obj.is_valid else _("⏸ Приостановлен / Занят")
 
         user_names = [uv.user.full_name for uv in vpn_obj.users]
-        users_str = ", ".join(user_names) if user_names else "Нет пользователей"
-        text = (
-            f"🔑 Ключ: {vpn_obj.name}\n"
-            f"📍 Сервер: {vpn_obj.server.location}\n"
-            f"📡 Статус: {status}\n"
-            f"👤 Пользователи: {users_str}\n"
-            f"🕒 Создан: {vpn_obj.created_at.strftime('%d.%m.%Y %H:%M')}"
-        )
+        users_str = ", ".join(user_names) if user_names else _("Нет пользователей")
+        text = _("🔑 Ключ: {name}\n"
+            "📍 Сервер: {location}\n"
+            "📡 Статус: {status}\n"
+            "👤 Пользователи: {users}\n"
+            "🕒 Создан: {date}").format(
+                name=vpn_obj.name,
+                location=vpn_obj.server.location,
+                status=status,
+                users=users_str,
+                date=vpn_obj.created_at.strftime('%d.%m.%Y %H:%M')
+            )
 
         if os.path.exists(vpn_obj.qr_code):
             with open(vpn_obj.qr_code, 'rb') as qr_file:
@@ -227,7 +251,7 @@ def vpn_panel_handler(call):
         bot.set_state(call.message.chat.id, AdminPanel.delete_vpn)
     elif "Cancel" in call.data:
         # Возврат в меню серверов
-        bot.send_message(call.message.chat.id, "Вы вернулись в меню серверов.",
+        bot.send_message(call.message.chat.id, _("Вы вернулись в меню серверов."),
                          reply_markup=get_servers_markup())
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся в меню серверов")
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
@@ -248,17 +272,21 @@ def vpn_delete_handler(call):
             app_logger.info(f"Администратор {call.message.from_user.full_name} запросил остановку "
                             f"VPN ключа {vpn_key.name}")
             if suspend_key(vpn_key):
-                bot.send_message(call.message.chat.id, f"⏸ Ключ {vpn_key.name} приостановлен")
+                bot.send_message(call.message.chat.id, _("⏸ Ключ {name} приостановлен").format(
+                    name=vpn_key.name
+                ))
             else:
-                bot.send_message(call.message.chat.id, "❌ Ошибка приостановки ключа!")
+                bot.send_message(call.message.chat.id, _("❌ Ошибка приостановки ключа!"))
 
         elif action == "resume":
             app_logger.info(f"Администратор {call.message.from_user.full_name} запросил возобновление работы "
                             f"VPN ключа {vpn_key.name}")
             if resume_key(vpn_key):
-                bot.send_message(call.message.chat.id, f"▶️ Ключ {vpn_key.name} возобновлен")
+                bot.send_message(call.message.chat.id, _("▶️ Ключ {name} возобновлен").format(
+                    name=vpn_key.name
+                ))
             else:
-                bot.send_message(call.message.chat.id, "❌ Ошибка возобновления ключа!")
+                bot.send_message(call.message.chat.id, _("❌ Ошибка возобновления ключа!"))
 
         elif action == "revoke":
             app_logger.info(f"Администратор {call.message.from_user.full_name} запросил отзыв VPN ключа {vpn_key.name}")
@@ -266,15 +294,15 @@ def vpn_delete_handler(call):
 
             UserVPNKey.delete().where(UserVPNKey.vpn_key == vpn_key).execute()
             if revoke_key(vpn_key):
-                bot.send_message(call.message.chat.id, f"🗑 Ключ {vpn_key.name} отозван")
+                bot.send_message(call.message.chat.id, _("🗑 Ключ {} отозван").format(name=vpn_key.name))
             else:
-                bot.send_message(call.message.chat.id, "❌ Ошибка отзыва ключа!")
+                bot.send_message(call.message.chat.id, _("❌ Ошибка отзыва ключа!"))
 
         bot.set_state(call.message.chat.id, AdminPanel.get_servers)
         return
 
     if "Cancel" in call.data:
-        bot.send_message(call.message.chat.id, "Вы вернулись в админку.", reply_markup=admin_markup())
+        bot.send_message(call.message.chat.id, _("Вы вернулись в админку."), reply_markup=admin_markup())
         app_logger.info(f"Администратор {call.from_user.full_name} вернулся в админку")
         bot.set_state(call.message.chat.id, AdminPanel.get_option)
         return
@@ -288,10 +316,10 @@ def message_sending_handler(message: Message):
     """ Хендлер рассылки сообщений юзерам """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /message_sending.")
-        bot.send_message(message.from_user.id, "✉️ Введите текст сообщения для рассылки пользователям:")
+        bot.send_message(message.from_user.id, _("✉️ Введите текст сообщения для рассылки пользователям:"))
         bot.set_state(message.from_user.id, AdminPanel.send_message)
     else:
-        bot.send_message(message.from_user.id, "❌ У вас недостаточно прав для выполнения этой команды!")
+        bot.send_message(message.from_user.id, _("❌ У вас недостаточно прав для выполнения этой команды!"))
         app_logger.warning(f"Попытка доступа к /message_sending без прав администратора {message.from_user.full_name}")
 
 
@@ -299,21 +327,21 @@ def message_sending_handler(message: Message):
 def send_message_to_users_handler(message: Message):
     """ Отправка сообщений пользователям """
     if message.text in get_all_commands_bot():
-        bot.send_message(message.from_user.id, "Это одна из команд бота")
+        bot.send_message(message.from_user.id, _("Это одна из команд бота"))
         bot.set_state(message.from_user.id, None)
         return
 
     if not message.text:
-        bot.send_message(message.from_user.id, "Сообщение не может быть пустым.")
+        bot.send_message(message.from_user.id, _("Сообщение не может быть пустым."))
         return
     app_logger.info(f"Администратор {message.from_user.full_name} начал рассылку сообщений: {message.text}")
 
-    bot.send_message(message.chat.id, "Начинаю рассылку...")
+    bot.send_message(message.chat.id, _("Начинаю рассылку..."))
     bot.send_chat_action(message.chat.id, "typing")
     for user_obj in User.select():
         if int(user_obj.user_id) not in ALLOWED_USERS:
             bot.send_message(user_obj.user_id, message.text)
-    bot.send_message(message.chat.id, "✅ Рассылка сообщений завершена!")
+    bot.send_message(message.chat.id, _("✅ Рассылка сообщений завершена!"))
     bot.set_state(message.from_user.id, None)
 
 
@@ -322,10 +350,10 @@ def add_vpn_key_handler(message: Message):
     """ Хендлер для ручного добавления VPN ключа """
     if message.from_user.id in ALLOWED_USERS:
         app_logger.info(f"Администратор {message.from_user.full_name} вызвал команду /add_vpn_key.")
-        bot.send_message(message.from_user.id, "🔑 Введите название нового VPN ключа:")
+        bot.send_message(message.from_user.id, _("🔑 Введите название нового VPN ключа:"))
         bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_name)
     else:
-        bot.send_message(message.from_user.id, "❌ У вас недостаточно прав!")
+        bot.send_message(message.from_user.id, _("❌ У вас недостаточно прав"))
 
 
 @bot.message_handler(state=AdminPanel.add_vpn_key_name)
@@ -334,7 +362,8 @@ def add_vpn_key_name_handler(message: Message):
     app_logger.info(f"Администратор {message.from_user.full_name} ввел название VPN ключа: {message.text}")
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_name"] = message.text
-    bot.send_message(message.from_user.id, "🔑 Введите VPN KEY в формате JSON или VLESS-ссылку (например, vless://...) :")
+    bot.send_message(message.from_user.id, _("🔑 Введите VPN KEY в формате JSON или "
+                                             "VLESS-ссылку (например, vless://...) :"))
     bot.set_state(message.from_user.id, AdminPanel.add_vpn_key_key)
 
 
@@ -342,7 +371,7 @@ def add_vpn_key_name_handler(message: Message):
 def add_vpn_key_key_handler(message: Message):
     """ Обработка ввода VPN ключа """
     if message.text in get_all_commands_bot():
-        bot.send_message(message.from_user.id, "Это одна из команд бота")
+        bot.send_message(message.from_user.id, _("Это одна из команд бота"))
         bot.set_state(message.from_user.id, None)
         return
 
@@ -350,14 +379,15 @@ def add_vpn_key_key_handler(message: Message):
     if "vless://" not in message.text:
         vless_str = convert_amnezia_xray_json_to_vless_str(message.text)
         if vless_str is None:
-            bot.send_message(message.from_user.id, "Не удалось преобразовать JSON в VLESS строку. Проверьте правильность ввода.")
+            bot.send_message(message.from_user.id, _("Не удалось преобразовать JSON в VLESS строку. "
+                                                     "Проверьте правильность ввода."))
             app_logger.warning("Не удалось преобразовать JSON конфиг в VLESS строку!")
             return
     else:
         vless_str = message.text
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["vpn_key_key"] = vless_str
-    bot.send_message(message.from_user.id, "Выберите сервер, к которому принадлежит ключ", reply_markup=get_servers_markup())
+    bot.send_message(message.from_user.id, _("Выберите сервер, к которому принадлежит ключ"), reply_markup=get_servers_markup())
     bot.set_state(message.from_user.id, AdminPanel.save_vpn_key)
 
 
@@ -369,11 +399,11 @@ def save_vpn_handler(call):
     if call.data == "Add":
         bot.send_message(
             call.message.chat.id,
-            "📄 Введите данные сервера в следующем формате:\n"
+            _("📄 Введите данные сервера в следующем формате:\n"
             "🏙 Location (например, США)\n"
             "👤 Username (например, root)\n"
             "🔒 Password (пароль от root)\n"
-            "🌐 IP address"
+            "🌐 IP address")
         )
         bot.set_state(call.message.chat.id, AdminPanel.add_server)
         return
@@ -403,10 +433,13 @@ def save_vpn_handler(call):
                 server=server_obj,
             )
         except peewee.IntegrityError:
-            bot.send_message(call.message.chat.id, "Такой ключ уже существует!")
-            bot.send_message(call.message.chat.id, "Вы вышли в главное меню")
+            bot.send_message(call.message.chat.id, _("Такой ключ уже существует!"))
+            bot.send_message(call.message.chat.id, _("Вы вышли в главное меню"))
             app_logger.warning(f"Попытка создания дубликата VPN ключа {data['vpn_key_name']}!")
         else:
             app_logger.info(f"Администратор {call.message.from_user.full_name} добавил VPN ключ {vpn_key.name} к серверу {server_obj.location}")
-            bot.send_message(call.message.chat.id, f"VPN ключ «{vpn_key.name}» добавлен к серверу {server_obj.location}.")
+            bot.send_message(call.message.chat.id, _("VPN ключ «{name}» добавлен к серверу {location}.").format(
+                name=vpn_key.name,
+                location=server_obj.location,
+            ))
         bot.set_state(call.message.chat.id, None)
