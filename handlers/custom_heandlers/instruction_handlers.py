@@ -4,6 +4,7 @@ from config_data.config import CHANNEL_ID
 from database.models import User
 from loader import bot, app_logger
 from keyboards.inline.app_buttons import get_apps_murkup
+from i18n_middleware import _
 
 
 @bot.message_handler(commands=["instruction"])
@@ -13,14 +14,15 @@ def instruction_handler(message: Message):
     cur_user = User.get(User.user_id == message.from_user.id)
 
     if cur_user.is_subscribed:
-        instruction_text = (
-            "📖 Подробная инструкция по подключению доступна по [ссылке]"
+        instruction_text = _("📖 Подробная инструкция по подключению доступна по [ссылке]"
             "(https://telegra.ph/Kak-ispolzovat-VPN-servis-Guard-Tunnel-01-16).\n\n"
             "💡 Для использования VPN, пожалуйста, скачайте приложение **Hiddify**.\n\n"
-            "Желаем вам безопасного и комфортного подключения! 🚀"
-        )
+            "Желаем вам безопасного и комфортного подключения! 🚀")
+
         bot.send_message(message.chat.id, instruction_text, parse_mode="Markdown", reply_markup=get_apps_murkup())
     else:
-        bot.send_message(message.chat.id, f"🚫 Вы не подписаны на [наш канал](https://t.me/{CHANNEL_ID[1:]})!\n"
-                                          f"Подпишитесь, чтобы получить доступ ко всему функционалу.",
+        bot.send_message(message.chat.id, _("🚫 Вы не подписаны на [наш канал](https://t.me/{channel_id})!\n"
+                                          "Подпишитесь, чтобы получить доступ ко всему функционалу.").format(
+            channel_id=CHANNEL_ID[1:]
+        ),
                          parse_mode="Markdown")
