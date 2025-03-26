@@ -43,7 +43,8 @@ def admin_panel_handler(call):
         app_logger.info(f"Администратор {call.from_user.full_name} вышел из админ панели.")
     elif call.data == "users":
         app_logger.info(f"Администратор {call.from_user.full_name} зашел в юзер панель.")
-        bot.send_message(call.message.chat.id, "👥 Список всех пользователей базы данных:",
+        users_count = len(User.select())
+        bot.send_message(call.message.chat.id, f"👥 Список всех пользователей базы данных (Кол-во: {users_count}):",
                          reply_markup=users_markup(page=1))
         bot.set_state(call.message.chat.id, AdminPanel.get_users)
     elif call.data == "servers":
