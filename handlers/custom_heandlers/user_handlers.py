@@ -9,6 +9,8 @@ from loader import bot, app_logger
 from states.states import UserPanel
 from utils.work_vpn_keys import revoke_key
 
+from i18n_middleware import _
+
 
 @bot.message_handler(commands=["panel"])
 def user_panel(message: Message):
@@ -17,18 +19,24 @@ def user_panel(message: Message):
 
     if cur_user.is_subscribed:
         app_logger.info(f"Пользователь {message.from_user.full_name} зашел в юзер панель.")
-        bot.send_message(message.from_user.id, "🔧 Вы зашли в панель управления!\n\n"
-                                               "<b>Профиль</b>\n"
-                                                f"👤 Имя: {cur_user.full_name}\n"
-                                                f"📱 Телеграм: @{cur_user.username}\n"
-                                                f"📢 Подписан на канал: {cur_user.is_subscribed}\n\n"
-                                               "🔑 Ваши VPN ключи 👇",
+        bot.send_message(message.from_user.id, _("🔧 Вы зашли в панель управления!\n\n"
+                                                "<b>Профиль</b>\n"
+                                                "👤 Имя: {full_name}\n"
+                                                "📱 Телеграм: @{username}\n"
+                                                "📢 Подписан на канал: {is_subscribed}\n\n"
+                                                "🔑 Ваши VPN ключи 👇").format(
+            full_name=cur_user.full_name,
+            username=cur_user.username,
+            is_subscribed=cur_user.is_subscribed
+        ),
                          reply_markup=user_panel_markup(cur_user),
                          parse_mode="HTML")
         bot.set_state(message.from_user.id, UserPanel.get_keys)
     else:
-        bot.send_message(message.chat.id, f"🚫 Вы не подписаны на [наш канал](https://t.me/{CHANNEL_ID[1:]})!\n"
-                                          f"Подпишитесь, чтобы получить доступ ко всему функционалу.",
+        bot.send_message(message.chat.id, _("🚫 Вы не подписаны на [наш канал](https://t.me/{channel_id})!\n"
+                                          "Подпишитесь, чтобы получить доступ ко всему функционалу.").format(
+            channel_id=CHANNEL_ID[1:]
+        ),
                          parse_mode="Markdown")
 
 
@@ -41,14 +49,18 @@ def user_keys_handler(call):
         # Выдача всей информации по VPN ключу
         vpn_obj: VPNKey = VPNKey.get_by_id(call.data.split("VPN - ")[1])
         app_logger.info(f"Пользователь {call.from_user.full_name} запросил информацию о VPN ключе {vpn_obj.name}")
-        status = "✅ Активен"
+        status = _("✅ Активен")
 
-        text = (
-            f"🔑 Ключ: {vpn_obj.name}\n"
-            f"📍 Сервер: {vpn_obj.server.location}\n"
-            f"📡 Статус: {status}\n"
-            f"🕒 Создан: {vpn_obj.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-            f"🔗 URL для подключения:\n`{vpn_obj.key}`"
+        text = _("🔑 Ключ: {name}\n"
+                "📍 Сервер: {location}\n"
+                "📡 Статус: {status}\n"
+                "🕒 Создан: {date}\n\n"
+                "🔗 URL для подключения:\n`{key}`").format(
+            name=vpn_obj.name,
+            location=vpn_obj.server.location,
+            status=status,
+            date=vpn_obj.created_at.strftime('%d.%m.%Y %H:%M'),
+            key=vpn_obj.key
         )
 
         if os.path.exists(vpn_obj.qr_code):
@@ -62,7 +74,7 @@ def user_keys_handler(call):
         bot.set_state(call.message.chat.id, UserPanel.delete_vpn)
     elif "Cancel" in call.data:
         # Возврат в меню серверов
-        bot.send_message(call.message.chat.id, "✅ Вы вернулись в главное меню")
+        bot.send_message(call.message.chat.id, _("✅ Вы вернулись в главное меню"))
         app_logger.info(f"Пользователь {call.from_user.full_name} вернулся в главное меню")
         bot.set_state(call.message.chat.id, None)
     else:
@@ -84,19 +96,21 @@ def user_vpn_delete_handler(call):
 
             UserVPNKey.delete().where(UserVPNKey.vpn_key == vpn_key).execute()
             bot.send_message(call.message.chat.id,
-                             f"⌛ Пожалуйста, подождите... Идет удаление ключа {vpn_key.name}...")
+                             _("⌛ Пожалуйста, подождите... Идет удаление ключа {name}...").format(
+                                 name=vpn_key.name
+                             ))
             if revoke_key(vpn_key):
-                bot.send_message(call.message.chat.id, f"🗑 Ключ {vpn_key.name} отозван")
-                bot.send_message(call.message.chat.id, "🔑 Ваши VPN ключи 👇",
+                bot.send_message(call.message.chat.id, _("🗑 Ключ {name} отозван").format(name=vpn_key.name))
+                bot.send_message(call.message.chat.id, _("🔑 Ваши VPN ключи 👇"),
                                  reply_markup=user_panel_markup(cur_user),
                                  parse_mode="HTML")
             else:
-                bot.send_message(call.message.chat.id, "❌ Ошибка отзыва ключа!")
+                bot.send_message(call.message.chat.id, _("❌ Ошибка отзыва ключа!"))
         bot.set_state(call.message.chat.id, UserPanel.get_keys)
 
     elif "Exit" in call.data:
-        bot.send_message(call.message.chat.id, "Вы вернулись в панель управления.")
-        bot.send_message(call.message.chat.id, "🔑 Ваши VPN ключи 👇",
+        bot.send_message(call.message.chat.id, _("Вы вернулись в панель управления."))
+        bot.send_message(call.message.chat.id, _("🔑 Ваши VPN ключи 👇"),
                          reply_markup=user_panel_markup(cur_user),
                          parse_mode="HTML")
         app_logger.info(f"Пользователь {call.from_user.full_name} вернулся в панель управления")
@@ -104,4 +118,4 @@ def user_vpn_delete_handler(call):
         return
     else:
         bot.set_state(call.message.chat.id, None)
-        bot.send_message(call.message.chat.id, "Команда не распознана. Вы были возвращены в главное меню")
+        bot.send_message(call.message.chat.id, _("Команда не распознана. Вы были возвращены в главное меню"))
