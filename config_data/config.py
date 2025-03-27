@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv, find_dotenv
+from i18n_middleware import _
 
 if not find_dotenv():
     exit('Переменные окружения не загружены, т.к отсутствует файл .env')
@@ -8,16 +9,16 @@ else:
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 DEFAULT_COMMANDS = (
-    ('start', "Запустить бота"),
-    ('help', "Вывести справку"),
-    ('location', "Выбрать сервера для подключения"),
-    ('instruction', "Запросить инструкцию для подключения VPN"),
-    ('panel', "Панель управления")
+    ('start', _("Запустить бота")),
+    ('help', _("Вывести справку")),
+    ('location', _("Выбрать сервера для подключения")),
+    ('instruction', _("Запросить инструкцию для подключения VPN")),
+    ('panel', _("Панель управления"))
 )
 ADMIN_COMMANDS = (
-    ("admin_panel", "Админка"),
-    ("message_sending", "Рассылка сообщений"),
-    ("add_vpn_key", "Вручную добавить VPN ключ")
+    ("admin_panel", _("Админка")),
+    ("message_sending", _("Рассылка сообщений")),
+    ("add_vpn_key", _("Вручную добавить VPN ключ"))
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
