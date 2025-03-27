@@ -460,4 +460,8 @@ msgstr "▶️ Возобновить"
 msgid "🗑 Отозвать"
 msgstr "🗑 Отозвать"
 
+# app_buttons.py
+
+msgid "🔀 Другой вариант"
+msgstr "🔀 Другой вариант"
 

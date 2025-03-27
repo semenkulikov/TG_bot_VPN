@@ -1,4 +1,5 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from i18n_middleware import _
 
 
 def get_apps_murkup():
@@ -16,6 +17,6 @@ def get_apps_murkup():
                 InlineKeyboardButton(text="🤖 Android", url="https://play.google.com/store/"
                                                          "apps/details?id=app.hiddify.com")
                 )
-    actions.add(InlineKeyboardButton(text="🔀 Другой вариант", url="https://github.com/hiddify/"
+    actions.add(InlineKeyboardButton(text=_("🔀 Другой вариант"), url="https://github.com/hiddify/"
                                                                       "hiddify-app/releases/tag/v2.0.5"))
     return actions
