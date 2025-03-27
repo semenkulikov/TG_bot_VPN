@@ -1,7 +1,7 @@
 from loader import bot, app_logger, scheduler
 import handlers  # noqa
 from telebot.custom_filters import StateFilter
-
+from datetime import datetime
 from utils.functions import run_migrations
 from utils.set_bot_commands import set_default_commands
 from database.models import create_models
@@ -20,9 +20,9 @@ if __name__ == '__main__':
     scheduler.remove_all_jobs()
 
     # Запуск проверки каждые 5 минут
-    # scheduler.add_job(check_and_revoke_keys, 'interval', minutes=5, next_run_time=datetime.now())
-    # scheduler.start()
-    # app_logger.info("Запущен планировщик для проверки подписки пользователей и отзыва ключей.")
+    scheduler.add_job(check_and_revoke_keys, 'interval', minutes=5, next_run_time=datetime.now())
+    scheduler.start()
+    app_logger.info("Запущен планировщик для проверки подписки пользователей и отзыва ключей.")
 
     # Каждые 8 часов отправляем уведомления о продлении ключей
     # scheduler.add_job(send_renewal_notifications, 'interval', hours=8, args=[scheduler], next_run_time=datetime.now())
