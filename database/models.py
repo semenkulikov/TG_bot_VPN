@@ -4,7 +4,10 @@ import re
 import peewee
 from config_data.config import BASE_DIR
 
-db = peewee.SqliteDatabase(os.path.join(BASE_DIR, "database/database.db"))
+db = peewee.SqliteDatabase(
+    os.path.join(BASE_DIR, "database/database.db"),
+    pragmas={'journal_mode': 'wal', 'cache_size': -1024 * 64}
+)
 
 
 class BaseModel(peewee.Model):
