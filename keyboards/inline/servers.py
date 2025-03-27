@@ -2,6 +2,7 @@ from typing import List
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database.models import Server, UserVPNKey
+from i18n_middleware import _
 
 
 def get_locations_markup():
@@ -15,7 +16,7 @@ def get_locations_markup():
 def get_instruction_markup():
     """ Inline buttons для выдачи ссылки на инструкцию """
     actions = InlineKeyboardMarkup(row_width=1)
-    actions.add(InlineKeyboardButton(text="📖 Инструкция для подключения", url="https://telegra.ph/"
+    actions.add(InlineKeyboardButton(text=_("📖 Инструкция для подключения"), url="https://telegra.ph/"
                                                                               "Kak-ispolzovat-VPN-servis-"
                                                                               "Guard-Tunnel-01-16"))
     return actions
