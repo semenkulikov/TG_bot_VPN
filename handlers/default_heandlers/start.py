@@ -9,7 +9,7 @@ from states.states import SubscribedState
 from i18n_middleware import _
 
 
-start_text = _("*Вы не подписались на канал!*\n"
+start_text = ("*Вы не подписались на канал!*\n"
 "\n"
 "☺️ Для доступа к полному функционалу бота вам необходимо подписаться на наш новостной канал [Guard Tunnel VPN](https://t.me/{channel_id})\n"
 "\n"
@@ -59,7 +59,7 @@ def bot_start(message: Message):
                 cur_user.is_subscribed = True
                 cur_user.save()
             else:
-                bot.send_message(message.from_user.id, start_text.format(channel_id=CHANNEL_ID[1:]),
+                bot.send_message(message.from_user.id, _(start_text).format(channel_id=CHANNEL_ID[1:]),
                                  reply_markup=is_subscribed_markup(), parse_mode='Markdown',
                                  disable_web_page_preview=True)
                 cur_user = User.get(User.user_id == message.from_user.id)
@@ -106,6 +106,6 @@ def is_subscribed_handler(call):
         bot.set_state(call.message.chat.id, None)
     else:
         bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, start_text.format(channel_id=CHANNEL_ID[1:]),
+        bot.send_message(call.message.chat.id, _(start_text).format(channel_id=CHANNEL_ID[1:]),
                          reply_markup=is_subscribed_markup(), parse_mode='Markdown',
                          disable_web_page_preview=True)
