@@ -74,7 +74,8 @@ def convert_amnezia_xray_json_to_vless_str(amnezia_str: str) -> str | None:
 def get_all_commands_bot():
     total_commands = [f"/{elem[0]}" for elem in DEFAULT_COMMANDS]
     total_commands.extend([f"/{elem[0]}" for elem in ADMIN_COMMANDS])
-    total_commands.extend(["🌍 Серверы", "❓ Справка", "📖 Инструкция"])
+    total_commands.extend(["🌍 Серверы", "❓ Справка", "📖 Инструкция", "🔧 Панель управления",
+                           "🌍 Servers", "❓ Help", "📖 Instruction", "🔧 Control panel"])
     return total_commands
 
 
