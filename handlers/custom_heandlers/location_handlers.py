@@ -126,9 +126,9 @@ def get_server_handler(call):
             "🌍 Сервер: <b>{location}</b>\n"
             "🔗 URL для подключения:\n<code>{key}</code>"
         ).format(
-            name=available_key.name,
+            name=new_key.name,
             location=cur_server.location,
-            key=available_key.key
+            key=new_key.key
         )
         bot.send_photo(
             call.message.chat.id,

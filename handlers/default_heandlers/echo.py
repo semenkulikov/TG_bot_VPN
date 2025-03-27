@@ -12,13 +12,13 @@ from i18n_middleware import _
 
 @bot.message_handler(state=None)
 def bot_echo(message: Message):
-    if message.text == "🌍 Серверы":
+    if message.text in ("🌍 Серверы", "🌍 Servers"):
         location_handler(message)
-    elif message.text == "❓ Справка":
+    elif message.text in ("❓ Справка", "❓ Help"):
         bot_help(message)
-    elif message.text == "📖 Инструкция":
+    elif message.text in ("📖 Инструкция", "📖 Instruction"):
         instruction_handler(message)
-    elif message.text == "🔧 Панель управления":
+    elif message.text in ("🔧 Панель управления", "🔧 Control panel"):
         user_panel(message)
     else:
         bot.reply_to(message, _("Введите любую команду из меню, чтобы я начал работать\n"
