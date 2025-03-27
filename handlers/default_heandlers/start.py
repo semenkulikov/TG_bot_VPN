@@ -31,9 +31,9 @@ def bot_start(message: Message):
                         username=message.from_user.username if message.from_user.username is not None else "None",
                         is_premium=message.from_user.is_premium,
                         is_subscribed=is_sub)
-        commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]
+        commands = [f"/{command} - {_(description)}" for command, description in DEFAULT_COMMANDS]
         if message.from_user.id in ALLOWED_USERS:
-            commands.extend([f"/{command} - {description}" for command, description in ADMIN_COMMANDS])
+            commands.extend([f"/{command} - {_(description)}" for command, description in ADMIN_COMMANDS])
             bot.send_message(
                 message.from_user.id,
                 _("Здравствуйте, {full_name}! 👋\n"
@@ -90,7 +90,7 @@ def bot_start(message: Message):
 @bot.callback_query_handler(func=None, state=SubscribedState.subscribe)
 def is_subscribed_handler(call):
     if is_subscribed(CHANNEL_ID, call.from_user.id):
-        commands = [f"/{command} - {description}" for command, description in DEFAULT_COMMANDS]
+        commands = [f"/{command} - {_(description)}" for command, description in DEFAULT_COMMANDS]
         app_logger.info(f"Пользователь {call.from_user.full_name} подписался на канал!")
 
         cur_user = User.get(User.user_id == call.from_user.id)

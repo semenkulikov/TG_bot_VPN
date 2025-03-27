@@ -24,6 +24,7 @@ def gettext_func(text: str) -> str:
     если переводчик не установлен.
     """
     lang = _user_lang.get()
+    # lang = "en"
     try:
         translator = gettext.translation(DOMAIN, localedir=LOCALES_DIR, languages=[lang])
     except FileNotFoundError:
