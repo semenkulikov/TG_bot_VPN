@@ -23,7 +23,6 @@ ADMIN_COMMANDS = (
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH_TO_PYTHON = os.path.normpath(os.path.join(BASE_DIR, ".venv/bin/python.exe"))
-LOCALES_DIR = os.path.normpath(os.path.join(BASE_DIR, 'locales'))
 LOG_DIR = os.path.normpath(os.path.join(BASE_DIR, "logs"))
 
 ADMIN_ID = os.getenv('ADMIN_ID')

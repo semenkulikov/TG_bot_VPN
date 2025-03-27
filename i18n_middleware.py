@@ -1,8 +1,12 @@
+import os
 from contextvars import ContextVar
 from typing import Optional
 import gettext
-from config_data.config import LOCALES_DIR
 
+
+LOCALES_DIR = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    'locales'))
 DOMAIN = 'messages'
 _user_lang: ContextVar[Optional[str]] = ContextVar('user_lang', default='en')
 
