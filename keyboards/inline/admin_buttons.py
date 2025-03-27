@@ -2,14 +2,15 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config_data.config import ALLOWED_USERS
 from database.models import User, Server
+from i18n_middleware import _
 
 
 def admin_markup():
     """ Inline buttons для выбора меню админа """
     actions = InlineKeyboardMarkup(row_width=2)
-    actions.add(InlineKeyboardButton(text=f"🖥 Управление серверами", callback_data="servers"))
-    actions.add(InlineKeyboardButton(text=f"👥 Управление пользователями", callback_data="users"))
-    actions.add(InlineKeyboardButton(text=f"🚪 Выйти", callback_data="Exit"))
+    actions.add(InlineKeyboardButton(text=_("🖥 Управление серверами"), callback_data="servers"))
+    actions.add(InlineKeyboardButton(text=_("👥 Управление пользователями"), callback_data="users"))
+    actions.add(InlineKeyboardButton(text=_("🚪 Выйти"), callback_data="Exit"))
     return actions
 
 
@@ -36,14 +37,14 @@ def users_markup(page: int = 1, per_page: int = 10) -> InlineKeyboardMarkup:
     # Добавляем кнопки пагинации, если нужно
     pagination_buttons = []
     if page > 1:
-        pagination_buttons.append(InlineKeyboardButton(text="⬅️ Назад",
+        pagination_buttons.append(InlineKeyboardButton(text=_("⬅️ Назад"),
                                                        callback_data=f"users_page_{page - 1}"))
     if has_next:
-        pagination_buttons.append(InlineKeyboardButton(text="Вперед ➡️",
+        pagination_buttons.append(InlineKeyboardButton(text=_("Вперед ➡️"),
                                                        callback_data=f"users_page_{page + 1}"))
     if pagination_buttons:
         markup.row(*pagination_buttons)
-    markup.add(InlineKeyboardButton(text="🔙 Выйти", callback_data="Exit_to_admin_panel"))
+    markup.add(InlineKeyboardButton(text=_("🔙 Выйти"), callback_data="Exit_to_admin_panel"))
     return markup
 
 
@@ -53,7 +54,7 @@ def get_servers_markup():
     servers_obj = Server.select()
     for server in servers_obj:
         actions.add(InlineKeyboardButton(text=f"🌍 {server.location}", callback_data=str(server.id)))
-    actions.add(InlineKeyboardButton(text=f"➕ Добавить сервер", callback_data="Add"))
+    actions.add(InlineKeyboardButton(text=_("➕ Добавить сервер"), callback_data="Add"))
     return actions
 
 def get_vpn_markup(server_id):
@@ -62,16 +63,16 @@ def get_vpn_markup(server_id):
     actions = InlineKeyboardMarkup(row_width=2)
     for vpn_key_obj in cur_server.keys:
         actions.add(InlineKeyboardButton(text=f"🔑 {vpn_key_obj.name}", callback_data=f"VPN - {str(vpn_key_obj.id)}"))
-    actions.add(InlineKeyboardButton(text=f"🔄 Сгенерировать новый ключ", callback_data=f"Generate {cur_server.id}"))
-    actions.add(InlineKeyboardButton(text=f"🗑 Удалить сервер", callback_data=f"Delete {cur_server.id}"),
-                InlineKeyboardButton(text=f"🔙 Назад", callback_data="Cancel"))  # Возврат в меню серверов
+    actions.add(InlineKeyboardButton(text=_("🔄 Сгенерировать новый ключ"), callback_data=f"Generate {cur_server.id}"))
+    actions.add(InlineKeyboardButton(text=_("🗑 Удалить сервер"), callback_data=f"Delete {cur_server.id}"),
+                InlineKeyboardButton(text=_("🔙 Назад"), callback_data="Cancel"))  # Возврат в меню серверов
     return actions
 
 def delete_vpn_markup(vpn_obj_id: int):
     """ Inline buttons для удаления vpn ключа """
     actions = InlineKeyboardMarkup(row_width=2)
-    actions.add(InlineKeyboardButton(text=f"🗑 Удалить", callback_data=f"Del - {vpn_obj_id}"),
-                InlineKeyboardButton(text=f"🚪 Выйти", callback_data="Cancel"))
+    actions.add(InlineKeyboardButton(text=_("🗑 Удалить"), callback_data=f"Del - {vpn_obj_id}"),
+                InlineKeyboardButton(text=_("🚪 Выйти"), callback_data="Cancel"))
     return actions
 
 
@@ -85,9 +86,9 @@ def key_actions_markup(key_id: int) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup(row_width=2)
 
     markup.add(
-        InlineKeyboardButton("⏸ Приостановить", callback_data=f"action_suspend_{key_id}"),
-        InlineKeyboardButton("▶️ Возобновить", callback_data=f"action_resume_{key_id}"),
-        InlineKeyboardButton("🗑 Отозвать", callback_data=f"action_revoke_{key_id}"),
-        InlineKeyboardButton("🔙 Назад", callback_data="Cancel")
+        InlineKeyboardButton(_("⏸ Приостановить"), callback_data=f"action_suspend_{key_id}"),
+        InlineKeyboardButton(_("▶️ Возобновить"), callback_data=f"action_resume_{key_id}"),
+        InlineKeyboardButton(_("🗑 Отозвать"), callback_data=f"action_revoke_{key_id}"),
+        InlineKeyboardButton(_("🔙 Назад"), callback_data="Cancel")
     )
     return markup
