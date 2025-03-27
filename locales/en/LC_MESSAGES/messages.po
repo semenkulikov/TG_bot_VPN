@@ -75,4 +75,422 @@ msgstr ""
 "The following commands are available to you:\n"
 "{commands}"
 
+# help.py
+
+msgid "📋 Доступные команды:\n{commands}"
+msgstr "📋 Available commands:\n{commands}"
+
+msgid "🤝 Для поддержки обращайтесь: @guardtunnel_support"
+msgstr "🤝 For support, please contact: @guardtunnel_support"
+
+# echo.py
+
+msgid ""
+"Введите любую команду из меню, чтобы я начал работать\n"
+"Либо выберите одну из кнопок, которые я вам прислал 👇"
+msgstr ""
+"Enter any command from the menu to get me started\n"
+"Or choose one of the buttons I sent you 👇"
+
+# admin_handlers.py
+
+msgid "🔧 Добро пожаловать в админ панель!\n\nВыберите нужную опцию ниже 👇"
+msgstr "🔧 Welcome to the admin panel!\n\nSelect an option below. 👇"
+
+msgid "❌ У вас недостаточно прав"
+msgstr "❌ You don't have enough rights"
+
+msgid "🚪 Вы успешно вышли из админ панели. До встречи!"
+msgstr "🚪 You have successfully logged out of the admin panel. See you later!"
+
+msgid "👥 Список всех пользователей базы данных (Кол-во: {users_count}):"
+msgstr "👥 List of all database users (Count: {users_count}):"
+
+msgid "🖥 Панель управления серверами:"
+msgstr "🖥 Server Control Panel:"
+
+msgid "Выберите опцию"
+msgstr "Select the option"
+
+msgid ""
+"👤 Имя: {full_name}\n"
+"📱 Телеграм: @{username}\n"
+"📢 Подписан на канал: {is_subscribed}\n"
+"🔑 VPN ключи: {vpn_keys_str}"
+msgstr ""
+"👤 Name: {full_name}\n"
+"📱 Telegram: @{username}\n"
+"📢 Subscribed to the channel: {is_subscribed}\n"
+"🔑 VPN keys: {vpn_keys_str}"
+
+msgid "❌ Пользователь не найден или произошла ошибка."
+msgstr "❌ The user was not found or an error occurred."
+
+msgid ""
+"📄 Введите данные сервера в следующем формате:\n"
+"🏙 Location (например, США)\n"
+"👤 Username (например, root)\n"
+"🔒 Password (пароль от root)\n"
+"🌐 IP address"
+msgstr ""
+"📄 Enter the server data in the following format:\n"
+"🏙 Location (for example, США)\n"
+"👤 Username (for example, root)\n"
+"🔒 Password (root password)\n"
+"🌐 IP address"
+
+msgid "✅ Настроен"
+msgstr "✅ Set up"
+
+msgid "❌ Требует настройки"
+msgstr "❌ Requires customization"
+
+msgid ""
+"🖥 Сервер: {location}\n"
+"🔰 Статус: {status}\n"
+"🌐 IP адрес: {ip_address}\n"
+"🔑 Количество ключей: {keys_count}"
+msgstr ""
+"🖥 Server: {location}\n"
+"🔰 Status: {status}\n"
+"🌐 IP address: {ip_address}\n"
+"🔑 Keys count: {keys_count}"
+
+msgid "❌ Неверное количество полей!"
+msgstr "❌ Wrong number of fields!"
+
+msgid "❌ Неверный формат IP адреса!"
+msgstr "❌ Incorrect IP address format!"
+
+msgid "Начинаю настройку сервера, подождите..."
+msgstr "I'm starting to set up the server, hold on..."
+
+msgid "✅ Сервер успешно настроен!"
+msgstr "✅ The server has been successfully configured!"
+
+msgid "❌ Ошибка настройки сервера!"
+msgstr "❌ Server configuration error!"
+
+msgid "❌ Некорректные данные!\n{ex}"
+msgstr "❌ Incorrect data!\n{ex}"
+
+msgid "⌛ Пожалуйста, подождите... Идет генерация нового VPN ключа..."
+msgstr "⌛ Please wait... New VPN key generation in progress..."
+
+msgid "✅ Отлично! VPN ключ «{key_name}» успешно создан!"
+msgstr "✅ Great! VPN key «{key_name}» has been successfully created!"
+
+msgid "❌ Ошибка генерации ключа!"
+msgstr "❌ Key generation error!"
+
+msgid "🗑 Начинается полная очистка сервера. Пожалуйста, подождите..."
+msgstr "🗑 A full server cleanup is starting. Please wait..."
+
+msgid ""
+"✅ Сервер {server_location} успешно удалён вместе "
+"с привязанными VPN ключами!"
+msgstr ""
+"✅ Server {server_location} has been successfully deleted along "
+"with the bound VPN keys!"
+
+msgid "❌ Ошибка удаления сервера!"
+msgstr "❌ Server deletion error!"
+
+msgid "✅ Активен"
+msgstr "✅ Active"
+
+msgid "⏸ Приостановлен / Занят"
+msgstr "⏸ Suspended / Occupied"
+
+msgid "Нет пользователей"
+msgstr "No users"
+
+msgid ""
+"🔑 Ключ: {name}\n"
+"📍 Сервер: {location}\n"
+"📡 Статус: {status}\n"
+"👤 Пользователи: {users}\n"
+"🕒 Создан: {date}"
+msgstr ""
+"🔑 Key: {name}\n"
+"📍 Server: {location}\n"
+"📡 Status: {status}\n"
+"👤 Users: {users}\n"
+"🕒 Created at: {date}"
+
+msgid "Вы вернулись в меню серверов."
+msgstr "You're back in the server menu."
+
+msgid "⏸ Ключ {name} приостановлен"
+msgstr "⏸ Key {name} is suspended"
+
+msgid "❌ Ошибка приостановки ключа!"
+msgstr "❌ Key suspension error!"
+
+msgid "▶️ Ключ {name} возобновлен"
+msgstr "▶️ The {name} key has been reactivated"
+
+msgid "❌ Ошибка возобновления ключа!"
+msgstr "❌ Key renewal error!"
+
+msgid "🗑 Ключ {name} отозван"
+msgstr "🗑 Key {name} has been revoked"
+
+msgid "❌ Ошибка отзыва ключа!"
+msgstr "❌ Key recall error!"
+
+msgid "Вы вернулись в админку."
+msgstr "You're back in the admin panel."
+
+msgid "✉️ Введите текст сообщения для рассылки пользователям:"
+msgstr "✉️ Enter the text of the message to be sent to users:"
+
+msgid "❌ У вас недостаточно прав для выполнения этой команды!"
+msgstr "❌ You do not have sufficient rights to execute this command!"
+
+msgid "Это одна из команд бота"
+msgstr "It's one of the bot's commands"
+
+msgid "Сообщение не может быть пустым."
+msgstr "The message cannot be empty."
+
+msgid "Начинаю рассылку..."
+msgstr "I'm starting the mailing list..."
+
+msgid "✅ Рассылка сообщений завершена!"
+msgstr "✅ The mailing has been completed!"
+
+msgid "🔑 Введите название нового VPN ключа:"
+msgstr "🔑 Enter the name of the new VPN key:"
+
+msgid "🔑 Введите VPN KEY в формате JSON или VLESS-ссылку (например, vless://...) :"
+msgstr "🔑 Enter the VPN KEY in JSON format or a VLESS link (for example, vless://...) :"
+
+msgid "Не удалось преобразовать JSON в VLESS строку. Проверьте правильность ввода."
+msgstr "Failed to convert JSON to a VLESS string. Check if the input is correct."
+
+msgid "Выберите сервер, к которому принадлежит ключ"
+msgstr "Select the server to which the key belongs"
+
+msgid "Такой ключ уже существует!"
+msgstr "Such a key already exists!"
+
+msgid "Вы вышли в главное меню"
+msgstr "You have reached the main menu"
+
+msgid "VPN ключ «{name}» добавлен к серверу {location}."
+msgstr "VPN key «{name}» is added to server {location}."
+
+# instruction_handlers.py
+
+msgid ""
+"📖 Подробная инструкция по подключению доступна по [ссылке]"
+"(https://telegra.ph/Kak-ispolzovat-VPN-servis-Guard-Tunnel-01-16).\n\n"
+"💡 Для использования VPN, пожалуйста, скачайте приложение **Hiddify**.\n\n"
+"Желаем вам безопасного и комфортного подключения! 🚀"
+msgstr ""
+"📖 Detailed connection instructions are available at [link]"
+"(https://telegra.ph/Kak-ispolzovat-VPN-servis-Guard-Tunnel-01-16).\n\n"
+"💡 To use the VPN, please download the app **Hiddify**.\n\n"
+"We wish you a safe and comfortable connection! 🚀"
+
+msgid ""
+"🚫 Вы не подписаны на [наш канал](https://t.me/{channel_id})!\n"
+"Подпишитесь, чтобы получить доступ ко всему функционалу."
+msgstr ""
+"🚫 You're not subscribed to [our channel](https://t.me/{channel_id})!\n"
+"Subscribe to get access to all functionality."
+
+# location_handlers.py
+
+msgid "🌍 Пожалуйста, выберите сервер для подключения:"
+msgstr "🌍 Please select a server to connect to:"
+
+msgid "⚠️ У вас уже 3 активных VPN ключа.\nВыберите ключ, который хотите заменить:"
+msgstr "⚠️ You already have 3 active VPN keys.\nSelect the key you want to replace:"
+
+msgid ""
+"🔒 Мы не храним информацию о ваших подключениях!\n\n"
+"🔑 Имя ключа: <b>{name}</b>\n"
+"🌍 Сервер: <b>{location}</b>\n"
+"🔗 URL для подключения:\n<code>{key}</code>"
+msgstr ""
+"🔒 We do not store information about your connections!\n\n"
+"🔑 Key name: <b>{name}</b>\n"
+"🌍 Server: <b>{location}</b>\n"
+"🔗 URL to connect:\n<code>{key}</code>"
+
+msgid ""
+"❌ Ведутся технические работы на стороне сервера, поэтому генерация нового ключа пока невозможна!"
+"\nПопробуйте позже 😊"
+msgstr ""
+"❌ Technical work is being done on the server side, so generation of a new key is not possible yet!"
+"\nTry again later 😊"
+
+msgid "✅ VPN ключ «{name}» удален"
+msgstr "✅ VPN key «{name}» has been deleted"
+
+msgid "❌ Ошибка при отзыве ключа!"
+msgstr "❌ Key revocation error!"
+
+msgid "❌ Ошибка: не найден сервер для генерации нового ключа."
+msgstr "❌ Error: No server found for new key generation."
+
+msgid "✅ Ваши VPN ключи успешно продлены!"
+msgstr "✅ Your VPN keys have been successfully renewed!"
+
+msgid "❌ Произошла ошибка при продлении ключей."
+msgstr "❌ There was an error when extending keys."
+
+# user_handlers.py
+
+msgid ""
+"🔧 Вы зашли в панель управления!\n\n"
+"<b>Профиль</b>\n"
+"👤 Имя: {full_name}\n"
+"📱 Телеграм: @{username}\n"
+"📢 Подписан на канал: {is_subscribed}\n\n"
+"🔑 Ваши VPN ключи 👇"
+msgstr ""
+"🔧 You've entered the control panel!\n\n"
+"<b>Profile</b>\n"
+"👤 Name: {full_name}\n"
+"📱 Telegram: @{username}\n"
+"📢 Subscribed to the channel: {is_subscribed}\n\n"
+"🔑 Your VPN keys 👇"
+
+msgid ""
+"🔑 Ключ: {name}\n"
+"📍 Сервер: {location}\n"
+"📡 Статус: {status}\n"
+"🕒 Создан: {date}\n\n"
+"🔗 URL для подключения:\n`{key}`"
+msgstr ""
+"🔑 Key: {name}\n"
+"📍 Server: {location}\n"
+"📡 Status: {status}\n"
+"🕒 Created at: {date}\n\n"
+"🔗 URL to connect:\n`{key}`"
+
+msgid "✅ Вы вернулись в главное меню"
+msgstr "✅ You have returned to the main menu"
+
+msgid "⌛ Пожалуйста, подождите... Идет удаление ключа {name}..."
+msgstr "⌛ Please wait... Key {name} is being deleted..."
+
+msgid "🔑 Ваши VPN ключи 👇"
+msgstr "🔑 Your VPN keys 👇"
+
+msgid "Вы вернулись в панель управления."
+msgstr "You're back in the control panel."
+
+msgid "Команда не распознана. Вы были возвращены в главное меню"
+msgstr "The command is not recognized. You have been returned to the main menu"
+
+# config.py
+
+msgid "Запустить бота"
+msgstr "Start the bot"
+
+msgid "Вывести справку"
+msgstr "Display help"
+
+msgid "Выбрать сервера для подключения"
+msgstr "Select servers to connect to"
+
+msgid "Запросить инструкцию для подключения VPN"
+msgstr "Request instructions for VPN connection"
+
+msgid "Панель управления"
+msgstr "Control panel"
+
+msgid "Админка"
+msgstr "Admin panel"
+
+msgid "Рассылка сообщений"
+msgstr "Sending messages"
+
+msgid "Вручную добавить VPN ключ"
+msgstr "Manually add a VPN key"
+
+
 # Переводы клавиатур
+
+# admin_buttons.py
+
+msgid "🖥 Управление серверами"
+msgstr "🖥 Server management"
+
+msgid "👥 Управление пользователями"
+msgstr "👥 User management"
+
+msgid "🚪 Выйти"
+msgstr "🚪 Get out"
+
+msgid "⬅️ Назад"
+msgstr "⬅️ Back"
+
+msgid "Вперед ➡️"
+msgstr "Go ahead ➡️"
+
+msgid "🔙 Выйти"
+msgstr "🔙 Get out"
+
+msgid "➕ Добавить сервер"
+msgstr "➕ Add server"
+
+msgid "🔄 Сгенерировать новый ключ"
+msgstr "🔄 Generate a new key"
+
+msgid "🗑 Удалить сервер"
+msgstr "🗑 Delete server"
+
+msgid "🔙 Назад"
+msgstr "🔙 Back"
+
+msgid "🗑 Удалить"
+msgstr "🗑 Delete"
+
+msgid "⏸ Приостановить"
+msgstr "⏸ Suspend"
+
+msgid "▶️ Возобновить"
+msgstr "▶️ Resume"
+
+msgid "🗑 Отозвать"
+msgstr "🗑 Call of"
+
+# app_buttons.py
+
+msgid "🔀 Другой вариант"
+msgstr "🔀 Another option"
+
+# servers.py
+
+msgid "📖 Инструкция для подключения"
+msgstr "📖 Instructions for connection"
+
+# subscribed.py
+
+msgid " ✅ Я подписался"
+msgstr " ✅ I'm subscribed"
+
+msgid "🔄 Продлить ключи"
+msgstr "🔄 Renew keys"
+
+# handlers_reply.py
+
+msgid "Нажмите на нужную кнопку либо введите команду..."
+msgstr "Click the desired button or enter the command..."
+
+msgid "🌍 Серверы"
+msgstr "🌍 Servers"
+
+msgid "📖 Инструкция"
+msgstr "📖 Instruction"
+
+msgid "🔧 Панель управления"
+msgstr "🔧 Control panel"
+
+msgid "❓ Справка"
+msgstr "❓ Help"
