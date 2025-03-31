@@ -340,7 +340,11 @@ def send_message_to_users_handler(message: Message):
     bot.send_chat_action(message.chat.id, "typing")
     for user_obj in User.select():
         if int(user_obj.user_id) not in ALLOWED_USERS:
-            bot.send_message(user_obj.user_id, message.text)
+            try:
+                bot.send_message(user_obj.user_id, message.text)
+                app_logger.info(f"Сообщение отправлено пользователю {user_obj.full_name}")
+            except Exception:
+                app_logger.error(f"Ошибка при отправке сообщения пользователю {user_obj.full_name}: бот заблокирован!")
     bot.send_message(message.chat.id, _("✅ Рассылка сообщений завершена!"))
     bot.set_state(message.from_user.id, None)
 
